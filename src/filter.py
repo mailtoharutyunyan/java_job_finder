@@ -272,14 +272,20 @@ def workable_from_armenia(job: Job) -> bool:
     if re.search(r"\barmenia\b|\byerevan\b", where):
         return True
 
+    # Region-locked to somewhere else (e.g. "US only") → not workable.
+    if _REGION_LOCKED.search(where) or _REGION_LOCKED.search(job.description.lower()):
+        return False
+
+    # Open to an Armenia-friendly region (Europe / EMEA / worldwide / …).
+    # Checked regardless of the "remote" wording, because some remote boards
+    # list allowed regions (e.g. "Northern America, LATAM, Europe, APAC")
+    # instead of the word "remote".
+    if _ARMENIA_OK_REGION.search(where):
+        return True
+
     if job.is_remote:
-        if _REGION_LOCKED.search(where) or _REGION_LOCKED.search(job.description.lower()):
-            return False
-        # Remote and either open to an Armenia-friendly region, or no region
-        # named at all (treated as open).
-        if _ARMENIA_OK_REGION.search(where):
-            return True
-        # A bare "Remote" with a single foreign country named → not workable.
+        # A bare "Remote" with a single foreign country named → not workable;
+        # otherwise treat unspecified remote as open.
         return not re.search(
             r"\b(united states|usa|u\.s\.|canada|india|brazil|australia|"
             r"philippines|nigeria|mexico|argentina|singapore|japan)\b", where)
