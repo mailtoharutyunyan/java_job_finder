@@ -7,9 +7,7 @@ from ..models import Job
 URL = "https://remotive.com/api/remote-jobs"
 
 
-def fetch() -> list[Job]:
-    data = get_json(URL, params={"search": "java"})
-    jobs = data.get("jobs", []) if isinstance(data, dict) else []
+def _to_jobs(jobs: list[dict]) -> list[Job]:
     return [
         Job(
             title=j.get("title", ""),
@@ -25,3 +23,12 @@ def fetch() -> list[Job]:
         for j in jobs
         if j.get("url")
     ]
+
+
+def fetch() -> list[Job]:
+    # Broaden coverage by searching multiple Java-family terms.
+    jobs = []
+    for term in ("java", "spring boot"):
+        data = get_json(URL, params={"search": term})
+        jobs.extend(data.get("jobs", []) if isinstance(data, dict) else [])
+    return _to_jobs(jobs)

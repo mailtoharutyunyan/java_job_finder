@@ -11,6 +11,7 @@ from . import (
     jsearch,
     remoteok,
     remotive,
+    themuse,
     weworkremotely,
     workingnomads,
 )
@@ -28,6 +29,7 @@ _SOURCES = [
     himalayas,
     weworkremotely,
     workingnomads,
+    themuse,
     jsearch,
 ]
 

@@ -145,12 +145,13 @@ def test_filter_java_excludes_staffing():
     assert kept[0].company == "Acme Corp"
 
 
-def test_filter_java_requires_java_and_location():
+def test_filter_java_keeps_remote_and_onsite_java():
+    # On-site Java roles are now included; non-Java and staffing are excluded.
     jobs = [
-        loc_job("Senior Java Developer", location="Remote"),          # java + remote → keep
-        loc_job("Senior Java Developer", location="Munich office"),   # java, on-site → drop
-        loc_job("Python Developer", location="Remote"),               # remote, not java → drop
+        loc_job("Senior Java Developer", location="Remote"),          # keep
+        loc_job("Senior Java Developer", location="Munich office"),   # keep (on-site)
+        loc_job("Python Developer", location="Remote"),               # drop (not java)
     ]
     kept = filter_java(jobs)
-    assert len(kept) == 1
-    assert kept[0].location == "Remote"
+    assert len(kept) == 2
+    assert all("Java" in j.title for j in kept)

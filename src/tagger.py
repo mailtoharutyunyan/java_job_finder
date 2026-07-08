@@ -36,6 +36,9 @@ def hashtags(job: Job) -> list[str]:
     for tag, patterns in _COMPILED:
         if any(p.search(text) for p in patterns):
             found.append(f"#{tag}")
+    # Make remote vs on-site explicit for filtering in the channel.
+    if "#remote" not in found:
+        found.append("#onsite")
     return found
 
 

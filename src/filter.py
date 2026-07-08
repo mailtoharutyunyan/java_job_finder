@@ -179,8 +179,10 @@ def is_remote_or_relocation(job: Job) -> bool:
 
 
 def filter_java(jobs: list[Job]) -> list[Job]:
-    """Java-family, remote/relocation jobs, excluding staffing marketplaces."""
-    return [
-        j for j in jobs
-        if matches(j) and is_remote_or_relocation(j) and not is_staffing(j)
-    ]
+    """Java-family jobs (remote and on-site), excluding staffing marketplaces.
+
+    Location is no longer required — on-site/hybrid roles are included for
+    coverage and tagged #remote or #onsite so they stay distinguishable.
+    (is_remote_or_relocation remains available for prioritization/tagging.)
+    """
+    return [j for j in jobs if matches(j) and not is_staffing(j)]
