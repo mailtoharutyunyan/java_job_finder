@@ -41,6 +41,33 @@ def dedupe_by_key(jobs):
     return out
 
 
+def _base_source(source: str) -> str:
+    if source.startswith(("greenhouse", "lever")):
+        return "ats"
+    return source.split("/")[0]
+
+
+def interleave_by_source(jobs):
+    """Round-robin jobs across their sources so one aggregator doesn't dominate
+    the top of the feed. Fit order is preserved within each source."""
+    buckets, order = {}, []
+    for job in jobs:
+        b = _base_source(job.source)
+        if b not in buckets:
+            buckets[b] = []
+            order.append(b)
+        buckets[b].append(job)
+    result = []
+    active = True
+    while active:
+        active = False
+        for b in order:
+            if buckets[b]:
+                result.append(buckets[b].pop(0))
+                active = True
+    return result
+
+
 def _alert(message: str, token: str, dry_run: bool) -> None:
     """Send a failure alert to the optional alert chat (falls back to logging).
 
@@ -76,7 +103,8 @@ def run(dry_run: bool = False, bootstrap: bool = False) -> int:
     log.info("%d Java-family jobs after filtering", len(java_jobs))
 
     store = SeenStore()
-    new_jobs = store.new_jobs(java_jobs)
+    # Interleave sources so each digest shows a mix, not one aggregator.
+    new_jobs = interleave_by_source(store.new_jobs(java_jobs))
     log.info("%d new (unseen) jobs", len(new_jobs))
 
     # Refresh the "all active jobs" page first so the button URL exists.
