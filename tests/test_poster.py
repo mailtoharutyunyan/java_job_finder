@@ -43,6 +43,15 @@ def test_digest_contains_multiple_jobs_numbered():
     assert msg.count("Apply") == 3
 
 
+def test_digest_shows_source_website():
+    j = Job(title="Java Developer", company="Acme", url="https://x/1",
+            source="weworkremotely", location="Remote")
+    assert "🌐 WeWorkRemotely" in format_digest([j])
+    ats = Job(title="Java Developer", company="GitLab",
+              url="https://x/2", source="greenhouse/gitlab", location="Remote")
+    assert "🌐 Greenhouse" in format_digest([ats])
+
+
 def test_digest_caps_at_size():
     jobs = [Job(title=f"Java Dev {n}", company="Co", url=f"https://x/{n}",
                 source="test") for n in range(20)]

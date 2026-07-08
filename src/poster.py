@@ -33,6 +33,10 @@ _SOURCE_DISPLAY = {
     "remotive": "Remotive", "arbeitnow": "Arbeitnow", "jobicy": "Jobicy",
     "remoteok": "RemoteOK", "himalayas": "Himalayas",
     "weworkremotely": "WeWorkRemotely", "workingnomads": "Working Nomads",
+    "themuse": "The Muse", "landingjobs": "Landing.jobs", "nodesk": "NoDesk",
+    "remoteyeah": "RemoteYeah", "tryremotely": "TryRemotely",
+    "remotefirstjobs": "RemoteFirstJobs", "euremotejobs": "EU Remote Jobs",
+    "jobspresso": "Jobspresso",
     "linkedin": "LinkedIn", "indeed": "Indeed", "glassdoor": "Glassdoor",
 }
 
@@ -70,8 +74,13 @@ def _location_line(job: Job) -> str:
 
 
 def _source_name(job: Job) -> str:
-    src = job.source.split("/")[-1].lower()
-    return _SOURCE_DISPLAY.get(src, src.title())
+    src = job.source.lower()
+    if src.startswith("greenhouse"):
+        return "Greenhouse"
+    if src.startswith("lever"):
+        return "Lever"
+    key = src.split("/")[-1]  # e.g. "jsearch/linkedin" → "linkedin"
+    return _SOURCE_DISPLAY.get(key, key.title())
 
 
 def _stack_line(tags: list[str]) -> str:
@@ -166,7 +175,7 @@ def _digest_entry(n: int, job: Job) -> str:
     if fit:
         meta.append(" ".join(fit))
 
-    parts = [head, " · ".join(meta)]
+    parts = [head, " · ".join(meta), f"🌐 {html.escape(_source_name(job))}"]
     snippet = _snippet(job.description, 130)
     if snippet:
         parts.append(snippet)
