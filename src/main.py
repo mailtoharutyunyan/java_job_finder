@@ -18,7 +18,9 @@ from .poster import TelegramPoster, send_text
 from .state import SeenStore
 from . import telegraph_page
 
-MAX_POSTS_PER_RUN = 5
+# Post all new jobs each run. A high safety ceiling (overridable via env) guards
+# against a misbehaving source dumping hundreds of posts at once.
+MAX_POSTS_PER_RUN = int(os.environ.get("MAX_POSTS_PER_RUN", "40"))
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("java-jobs")
