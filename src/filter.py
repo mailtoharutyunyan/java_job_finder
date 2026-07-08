@@ -369,8 +369,11 @@ def filter_java(jobs: list[Job]) -> list[Job]:
     Keeps remote roles open to Armenia's region, relocation/visa roles, and
     roles located in Armenia; drops on-site-abroad and region-locked roles.
     """
+    # Staffing/freelance marketplaces (Toptal, Lemon.io, …) are allowed —
+    # the user is open to B2B/contract, and the backend-role + Java/Go filters
+    # keep out those marketplaces' non-matching listings anyway.
     return [
         j for j in jobs
-        if matches(j) and is_backend_dev_role(j) and not is_staffing(j)
+        if matches(j) and is_backend_dev_role(j)
         and workable_from_armenia(j) and is_recent(j)
     ]

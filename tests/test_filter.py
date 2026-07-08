@@ -221,11 +221,11 @@ def test_real_company_not_staffing():
     assert not is_staffing(staff_job("Google"))
 
 
-def test_filter_java_excludes_staffing():
+def test_filter_java_now_allows_staffing_b2b():
+    # B2B/contract marketplaces are allowed (user opted in).
     jobs = [staff_job("Acme Corp"), staff_job("Lemon.io")]
     kept = filter_java(jobs)
-    assert len(kept) == 1
-    assert kept[0].company == "Acme Corp"
+    assert len(kept) == 2
 
 
 # --- workable-from-Armenia ---

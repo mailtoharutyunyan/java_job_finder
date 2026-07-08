@@ -34,6 +34,20 @@ _TAGS: list[tuple[str, list[str]]] = [
 _RELOCATION_RE = re.compile(
     r"\b(relocation|relocate|visa|sponsorship|work permit)\b", re.I)
 
+# Contract / B2B signals (avoids "smart contract" and generic "contract" prose).
+_CONTRACT_RE = re.compile(
+    r"\bb2b\b|\bc2c\b|\bfreelance\b|\bcontractor\b|contract[\s-]?to[\s-]?hire"
+    r"|\bfixed[\s-]term\b"
+    r"|contract\s+(role|position|basis|work|opportunity|engagement|hire|type)",
+    re.I,
+)
+
+
+def is_contract(job: Job) -> bool:
+    if any(t.lower() in ("contract", "freelance", "b2b") for t in job.tags):
+        return True
+    return bool(_CONTRACT_RE.search(job.haystack))
+
 _COMPILED = [(tag, [re.compile(p) for p in pats]) for tag, pats in _TAGS]
 
 
@@ -52,6 +66,8 @@ def hashtags(job: Job) -> list[str]:
     found.append("#remote" if job.is_remote else "#onsite")
     if _RELOCATION_RE.search(job.description):
         found.append("#relocation")
+    if is_contract(job):
+        found.append("#contract")
     return found
 
 

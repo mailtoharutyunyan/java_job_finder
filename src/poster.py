@@ -180,6 +180,7 @@ def _bullet(job: Job) -> str:
         fit = f" · 🐹{go_fit(job)}"
     tags = hashtags(job)
     reloc = " · ✈️relocation" if "#relocation" in tags else ""
+    contract = " · 📄contract" if "#contract" in tags else ""
     src = source_hashtag(job)
     if src and src not in tags:
         tags.append(src)
@@ -187,7 +188,7 @@ def _bullet(job: Job) -> str:
     shown = [t for t in tags if t != "#onsite"][:7]
     tagline = "\n  " + " ".join(shown) if shown else ""
     return (f'• {star}<a href="{html.escape(job.url)}">{html.escape(job.title)}</a>'
-            f" — {_display_location(job)}{fit}{reloc}{tagline}")
+            f" — {_display_location(job)}{fit}{reloc}{contract}{tagline}")
 
 
 def format_digest(jobs: list[Job]) -> str:

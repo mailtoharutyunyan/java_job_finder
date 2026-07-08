@@ -1,6 +1,6 @@
 """Tests for skill hashtag detection and profile matching."""
 from src.models import Job
-from src.tagger import hashtags, is_profile_match, source_hashtag
+from src.tagger import hashtags, is_contract, is_profile_match, source_hashtag
 
 
 def job(title, description="", tags=None):
@@ -38,6 +38,23 @@ def test_profile_match_true_for_cv_skills():
 
 def test_profile_match_false_without_target_skills():
     assert not is_profile_match(job("Java Developer", description="on-prem Oracle DB"))
+
+
+def test_contract_detection():
+    assert is_contract(job("Java Developer", description="This is a B2B contract role"))
+    assert is_contract(job("Go Developer", description="Freelance, contract-to-hire"))
+    assert is_contract(Job(title="Java Dev", company="C", url="https://x/1",
+                           source="t", tags=["Contract"]))
+
+
+def test_contract_ignores_smart_contract_and_prose():
+    assert not is_contract(job("Java Developer",
+                               description="Build smart contract auditing tools"))
+    assert not is_contract(job("Java Developer", description="Full-time backend role"))
+
+
+def test_contract_hashtag_added():
+    assert "#contract" in hashtags(job("Java Developer", description="B2B freelance role"))
 
 
 def test_source_hashtag_jsearch_publisher():
