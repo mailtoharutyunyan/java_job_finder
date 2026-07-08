@@ -1,5 +1,11 @@
 """Tests for the Java-vs-JavaScript filter."""
-from src.filter import filter_java, is_remote_or_relocation, is_staffing, matches
+from src.filter import (
+    filter_java,
+    is_remote_or_relocation,
+    is_staffing,
+    matches,
+    workable_from_armenia,
+)
 from src.models import Job
 
 
@@ -145,12 +151,45 @@ def test_filter_java_excludes_staffing():
     assert kept[0].company == "Acme Corp"
 
 
-def test_filter_java_keeps_remote_and_onsite_java():
-    # On-site Java roles are now included; non-Java and staffing are excluded.
+# --- workable-from-Armenia ---
+
+def test_remote_worldwide_workable():
+    assert workable_from_armenia(loc_job(location="Remote, Worldwide"))
+    assert workable_from_armenia(loc_job(location="Anywhere"))
+    assert workable_from_armenia(loc_job(location="Remote (Europe)"))
+
+
+def test_remote_us_only_not_workable():
+    assert not workable_from_armenia(loc_job(location="Remote, United States"))
+    assert not workable_from_armenia(
+        loc_job(location="Remote", description="US only, must be authorized to work in the US"))
+
+
+def test_onsite_abroad_not_workable():
+    assert not workable_from_armenia(loc_job(location="Munich office"))
+
+
+def test_relocation_makes_onsite_workable():
+    assert workable_from_armenia(
+        loc_job(location="Berlin", description="Full relocation and visa sponsorship"))
+
+
+def test_armenia_location_workable():
+    assert workable_from_armenia(loc_job(location="Yerevan, Armenia"))
+
+
+def test_bare_remote_workable():
+    assert workable_from_armenia(loc_job(location="Remote"))
+
+
+def test_filter_java_keeps_only_armenia_workable():
     jobs = [
-        loc_job("Senior Java Developer", location="Remote"),          # keep
-        loc_job("Senior Java Developer", location="Munich office"),   # keep (on-site)
-        loc_job("Python Developer", location="Remote"),               # drop (not java)
+        loc_job("Senior Java Developer", location="Remote, Worldwide"),        # keep
+        loc_job("Senior Java Developer", location="Munich office"),            # drop (onsite abroad)
+        loc_job("Senior Java Developer", location="Berlin",
+                description="relocation offered"),                             # keep (relocation)
+        loc_job("Senior Java Developer", location="Remote, United States"),    # drop (region-locked)
+        loc_job("Python Developer", location="Remote, Worldwide"),             # drop (not java)
     ]
     kept = filter_java(jobs)
     assert len(kept) == 2

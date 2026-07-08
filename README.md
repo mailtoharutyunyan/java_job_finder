@@ -18,7 +18,11 @@ every 15 min cron → fetch sources → filter Java-family → drop already-seen
 
 Sources (free, no API keys): Remotive, Arbeitnow, Jobicy, RemoteOK, Himalayas,
 WeWorkRemotely, Working Nomads, The Muse.
-Both remote and on-site Java roles are posted; each is tagged #remote or #onsite.
+Only jobs workable from Armenia are posted: remote roles open to Armenia's
+region (worldwide / anywhere / Europe / EMEA / unspecified), roles offering
+relocation or visa sponsorship, and roles located in Armenia. On-site-abroad
+and region-locked (e.g. "US only") roles are dropped. Each post is tagged
+#remote / #onsite and #relocation where applicable.
 Optional: JSearch (RapidAPI) adds LinkedIn / Indeed / Glassdoor listings — set
 the `RAPIDAPI_KEY` secret to enable it. It self-limits to ~6×/day to stay under
 the free tier; the other sources run every 15 minutes.

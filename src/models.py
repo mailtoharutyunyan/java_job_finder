@@ -6,6 +6,13 @@ import re
 from dataclasses import dataclass, field
 
 
+_REMOTE_LOC = re.compile(
+    r"\b(remote|world\s?wide|anywhere|distributed|work from home|wfh|"
+    r"home[\s-]?office)\b",
+    re.I,
+)
+
+
 def _fix_mojibake(text: str) -> str:
     """Repair UTF-8 that was double-encoded upstream (e.g. "SÃªnior" → "Sênior").
 
@@ -72,6 +79,12 @@ class Job:
         text = re.sub(r"\bjr\b", "junior", text)
         text = re.sub(r"[^a-z0-9]", "", text)
         return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+    @property
+    def is_remote(self) -> bool:
+        """Remote status judged from location + tags (not free-text description)."""
+        where = f"{self.location} {' '.join(self.tags)}"
+        return bool(_REMOTE_LOC.search(where))
 
     @property
     def haystack(self) -> str:

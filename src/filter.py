@@ -163,26 +163,71 @@ def is_staffing(job: Job) -> bool:
                for s in _STAFFING_COMPANIES)
 
 
-def is_remote_or_relocation(job: Job) -> bool:
-    """True if the job is remote/worldwide or offers relocation/visa support.
+# Regions a person in Armenia can realistically work in remotely.
+_ARMENIA_OK_REGION = re.compile(
+    r"\b(world\s?wide|anywhere|global|international|emea|europe|"
+    r"european|cet|eet|armenia|yerevan|caucasus|middle east)\b",
+    re.I,
+)
 
-    Location and tags are the primary signal; the description is included so
-    roles that state "remote" or "visa sponsorship" only in the body still pass.
+# Region-locked signals that exclude someone based in Armenia (unless the role
+# also offers relocation/visa, which is checked separately).
+_REGION_LOCKED = re.compile(
+    r"\b(us[\s-]?only|u\.s\.?[\s-]?only|usa only|united states only|"
+    r"canada only|india only|uk only|us based|must be based in|"
+    r"authorized to work in the u)\b",
+    re.I,
+)
+
+
+def offers_relocation(job: Job) -> bool:
+    return any(r.search(job.description.lower()) for r in _RELOCATION_RE)
+
+
+def is_remote_or_relocation(job: Job) -> bool:
+    """True if the job is remote (by location/tags) or offers relocation/visa."""
+    return job.is_remote or offers_relocation(job)
+
+
+def workable_from_armenia(job: Job) -> bool:
+    """True if someone based in Armenia could realistically take this job.
+
+    Accepts: relocation/visa roles, roles in Armenia, and remote roles open to
+    a region that includes Armenia (worldwide / Europe / EMEA / unspecified).
+    Rejects: on-site roles abroad, and remote roles locked to another region
+    (e.g. "US only") with no relocation.
     """
-    where = " ".join([job.location, " ".join(job.tags)]).lower()
-    if any(r.search(where) for r in _REMOTE_RE):
+    where = f"{job.location} {' '.join(job.tags)}".lower()
+
+    # Willing-to-move or already in-region always qualifies.
+    if offers_relocation(job):
         return True
-    body = job.haystack
-    if any(r.search(body) for r in _REMOTE_RE):
+    if re.search(r"\barmenia\b|\byerevan\b", where):
         return True
-    return any(r.search(body) for r in _RELOCATION_RE)
+
+    if job.is_remote:
+        if _REGION_LOCKED.search(where) or _REGION_LOCKED.search(job.description.lower()):
+            return False
+        # Remote and either open to an Armenia-friendly region, or no region
+        # named at all (treated as open).
+        if _ARMENIA_OK_REGION.search(where):
+            return True
+        # A bare "Remote" with a single foreign country named → not workable.
+        return not re.search(
+            r"\b(united states|usa|u\.s\.|canada|india|brazil|australia|"
+            r"philippines|nigeria|mexico|argentina|singapore|japan)\b", where)
+
+    # On-site abroad with no relocation → not workable from Armenia.
+    return False
 
 
 def filter_java(jobs: list[Job]) -> list[Job]:
-    """Java-family jobs (remote and on-site), excluding staffing marketplaces.
+    """Java-family jobs a person in Armenia can take, excluding staffing.
 
-    Location is no longer required — on-site/hybrid roles are included for
-    coverage and tagged #remote or #onsite so they stay distinguishable.
-    (is_remote_or_relocation remains available for prioritization/tagging.)
+    Keeps remote roles open to Armenia's region, relocation/visa roles, and
+    roles located in Armenia; drops on-site-abroad and region-locked roles.
     """
-    return [j for j in jobs if matches(j) and not is_staffing(j)]
+    return [
+        j for j in jobs
+        if matches(j) and not is_staffing(j) and workable_from_armenia(j)
+    ]

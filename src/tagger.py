@@ -21,10 +21,12 @@ _TAGS: list[tuple[str, list[str]]] = [
     ("kafka", [r"\bkafka\b"]),
     ("microservices", [r"\bmicroservices?\b"]),
     ("kotlin", [r"\bkotlin\b"]),
-    ("remote", [r"\bremote\b", r"\bworldwide\b", r"\banywhere\b"]),
     ("senior", [r"\bsenior\b", r"\bsr\.?\b", r"\bstaff\b", r"\bprincipal\b", r"\blead\b"]),
     ("junior", [r"\bjunior\b", r"\bjr\.?\b", r"\bentry[\s-]?level\b"]),
 ]
+
+_RELOCATION_RE = re.compile(
+    r"\b(relocation|relocate|visa|sponsorship|work permit)\b", re.I)
 
 _COMPILED = [(tag, [re.compile(p) for p in pats]) for tag, pats in _TAGS]
 
@@ -36,9 +38,10 @@ def hashtags(job: Job) -> list[str]:
     for tag, patterns in _COMPILED:
         if any(p.search(text) for p in patterns):
             found.append(f"#{tag}")
-    # Make remote vs on-site explicit for filtering in the channel.
-    if "#remote" not in found:
-        found.append("#onsite")
+    # Remote vs on-site is judged from the location (not the description).
+    found.append("#remote" if job.is_remote else "#onsite")
+    if _RELOCATION_RE.search(job.description):
+        found.append("#relocation")
     return found
 
 
