@@ -68,25 +68,46 @@ def is_profile_match(job: Job) -> bool:
     return bool({"#angular", "#aws", "#ai"} & tags)
 
 
-# Weighted keywords for ranking a job's fit for a Java developer.
-_SCORE_WEIGHTS: list[tuple[str, int]] = [
-    (r"\bjava\b", 10),
-    (r"\bgolang\b", 10),
-    (r"\bspring( boot)?\b", 10),
+# Backend skills that count toward either a Java or a Go role.
+_SHARED_FIT = [
     (r"\bmicroservices?\b", 7),
     (r"\bkafka\b", 5),
     (r"\baws\b", 5),
     (r"\bkubernetes\b|\bk8s\b", 4),
-    (r"\bhibernate\b", 3),
     (r"\bdocker\b", 3),
-    (r"\bangular\b", 3),
     (r"\b(ai|machine learning|llm|genai)\b", 3),
+]
+_JAVA_FIT = [
+    (r"\bjava\b", 10),
+    (r"\bspring( boot)?\b", 10),
+    (r"\bhibernate\b", 3),
+    (r"\bangular\b", 3),
     (r"\bkotlin\b", 2),
 ]
-_SCORE_RE = [(re.compile(p), w) for p, w in _SCORE_WEIGHTS]
+_GO_FIT = [(r"\bgolang\b", 10)]
+
+_SHARED_RE = [(re.compile(p), w) for p, w in _SHARED_FIT]
+_JAVA_FIT_RE = [(re.compile(p), w) for p, w in _JAVA_FIT]
+_GO_FIT_RE = [(re.compile(p), w) for p, w in _GO_FIT]
+
+
+def _score(text: str, specific: list) -> int:
+    return (sum(w for r, w in specific if r.search(text))
+            + sum(w for r, w in _SHARED_RE if r.search(text)))
+
+
+def java_fit(job: Job) -> int:
+    """Java-fit score, or 0 if the job isn't a Java role."""
+    tags = hashtags(job)
+    return _score(job.haystack, _JAVA_FIT_RE) if "#java" in tags else 0
+
+
+def go_fit(job: Job) -> int:
+    """Go-fit score, or 0 if the job isn't a Go role."""
+    tags = hashtags(job)
+    return _score(job.haystack, _GO_FIT_RE) if "#golang" in tags else 0
 
 
 def relevance_score(job: Job) -> int:
-    """Higher = better fit for a Java developer (keyword-weighted)."""
-    text = job.haystack
-    return sum(w for r, w in _SCORE_RE if r.search(text))
+    """Overall ranking score = the stronger of the Java and Go fits."""
+    return max(java_fit(job), go_fit(job))

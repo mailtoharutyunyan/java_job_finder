@@ -17,6 +17,7 @@ _RFJ = "https://remotefirstjobs.com/rss/jobs/{}.rss"
 _RFJ_SKILLS = [
     "java", "backend", "kotlin", "microservices", "aws", "docker",
     "kubernetes", "cloud", "backend-engineer", "golang", "go",
+    "devops", "cloud-engineer",
 ]
 
 FEEDS: list[tuple[str, str]] = [
@@ -25,6 +26,8 @@ FEEDS: list[tuple[str, str]] = [
     ("tryremotely", "https://tryremotely.com/feeds/jobs.rss"),
     ("euremotejobs", "https://euremotejobs.com/?feed=job_feed"),
     ("jobspresso", "https://jobspresso.co/?feed=job_feed"),
+    # General Remote First Jobs feed (all recent postings, filtered by us).
+    ("remotefirstjobs", "https://remotefirstjobs.com/rss/jobs.rss"),
 ] + [("remotefirstjobs", _RFJ.format(s)) for s in _RFJ_SKILLS]
 
 
