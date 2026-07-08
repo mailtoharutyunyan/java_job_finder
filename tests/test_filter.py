@@ -7,6 +7,7 @@ from src.filter import (
     is_remote_or_relocation,
     is_staffing,
     matches,
+    requires_work_permit,
     workable_from_armenia,
 )
 from src.models import Job
@@ -229,6 +230,25 @@ def test_armenia_location_workable():
 
 def test_bare_remote_workable():
     assert workable_from_armenia(loc_job(location="Remote"))
+
+
+def test_no_sponsorship_not_workable():
+    assert requires_work_permit(loc_job(description="We do not offer visa sponsorship."))
+    assert not workable_from_armenia(
+        loc_job(location="Remote", description="Sorry, we cannot sponsor visas."))
+    assert not workable_from_armenia(
+        loc_job(location="Remote", description="Must be legally authorized to work in the US."))
+
+
+def test_sponsorship_available_still_workable():
+    # A positive offer must not be caught by the no-permit guard.
+    assert not requires_work_permit(loc_job(description="Visa sponsorship available."))
+    assert workable_from_armenia(
+        loc_job(location="Berlin", description="Relocation and visa sponsorship provided."))
+
+
+def test_worldwide_remote_not_flagged_permit():
+    assert workable_from_armenia(loc_job(location="Remote, Worldwide"))
 
 
 def test_filter_java_keeps_only_armenia_workable():

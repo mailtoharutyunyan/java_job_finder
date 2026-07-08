@@ -26,6 +26,8 @@ FEEDS: list[tuple[str, str]] = [
     ("tryremotely", "https://tryremotely.com/feeds/jobs.rss"),
     ("euremotejobs", "https://euremotejobs.com/?feed=job_feed"),
     ("jobspresso", "https://jobspresso.co/?feed=job_feed"),
+    ("jobscollider", "https://jobscollider.com/remote-software-development-jobs.rss"),
+    ("jobscollider", "https://jobscollider.com/remote-devops-jobs.rss"),
     # General Remote First Jobs feed (all recent postings, filtered by us).
     ("remotefirstjobs", "https://remotefirstjobs.com/rss/jobs.rss"),
 ] + [("remotefirstjobs", _RFJ.format(s)) for s in _RFJ_SKILLS]

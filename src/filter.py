@@ -247,7 +247,33 @@ def is_recent(job: Job, max_age_days: int = MAX_AGE_DAYS) -> bool:
     return age <= max_age_days
 
 
+# Signals that the candidate must ALREADY hold a work permit / authorization
+# (i.e. the employer won't sponsor) — someone in Armenia can't meet these.
+_NO_PERMIT = re.compile(
+    r"no\s+(visa\s+)?sponsorship"
+    r"|not\s+(able\s+to\s+|going\s+to\s+)?sponsor"
+    r"|unable\s+to\s+sponsor"
+    r"|(cannot|can't|will not|won't|do not|don't|does not|doesn't|are not able to)"
+    r"\s+(offer\s+|provide\s+)?(visa\s+)?sponsor"
+    r"|without\s+(visa\s+)?sponsorship"
+    r"|no\s+work\s+permit"
+    r"|must\s+(be\s+)?(legally\s+)?(authorized|authorised|eligible)\s+to\s+work"
+    r"|must\s+(already\s+)?have\s+(the\s+)?(right|authorization|authorisation|permit)\s+to\s+work"
+    r"|(valid\s+)?work\s+(permit|authorization|authorisation)\s+(is\s+)?required"
+    r"|existing\s+work\s+(permit|authorization|authorisation)",
+    re.I,
+)
+
+
+def requires_work_permit(job: Job) -> bool:
+    """True if the listing says the candidate must already be work-authorized."""
+    return bool(_NO_PERMIT.search(job.description))
+
+
 def offers_relocation(job: Job) -> bool:
+    # A negated form ("no visa sponsorship") is NOT an offer of relocation.
+    if requires_work_permit(job):
+        return False
     return any(r.search(job.description.lower()) for r in _RELOCATION_RE)
 
 
@@ -265,6 +291,11 @@ def workable_from_armenia(job: Job) -> bool:
     (e.g. "US only") with no relocation.
     """
     where = f"{job.location} {' '.join(job.tags)}".lower()
+
+    # Requires the candidate to already hold a work permit / authorization,
+    # and doesn't sponsor → someone in Armenia can't take it.
+    if requires_work_permit(job):
+        return False
 
     # Willing-to-move or already in-region always qualifies.
     if offers_relocation(job):

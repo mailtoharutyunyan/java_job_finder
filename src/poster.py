@@ -36,7 +36,7 @@ _SOURCE_DISPLAY = {
     "themuse": "The Muse", "landingjobs": "Landing.jobs", "nodesk": "NoDesk",
     "remoteyeah": "RemoteYeah", "tryremotely": "TryRemotely",
     "remotefirstjobs": "RemoteFirstJobs", "euremotejobs": "EU Remote Jobs",
-    "jobspresso": "Jobspresso",
+    "jobspresso": "Jobspresso", "jobscollider": "JobsCollider",
     "linkedin": "LinkedIn", "indeed": "Indeed", "glassdoor": "Glassdoor",
 }
 
@@ -159,6 +159,16 @@ def format_message(job: Job) -> str:
 DIGEST_SIZE = 10
 
 
+def _display_location(job: Job) -> str:
+    """Normalize the location to Worldwide / Remote (icon + label)."""
+    low = job.location.lower()
+    if re.search(r"\b(world\s?wide|anywhere|global)\b", low):
+        return "🌍 Worldwide"
+    if re.search(r"\b(europe|emea|eu)\b", low):
+        return "🌍 Remote (Europe)"
+    return "🌍 Remote"
+
+
 def _bullet(job: Job) -> str:
     """A single clickable job line under its company heading."""
     star = "⭐ " if is_profile_match(job) else ""
@@ -167,9 +177,9 @@ def _bullet(job: Job) -> str:
         fit = f" · ☕{java_fit(job)}"
     elif go_fit(job):
         fit = f" · 🐹{go_fit(job)}"
-    loc = job.location or "Remote"
+    reloc = " · ✈️relocation" if "#relocation" in hashtags(job) else ""
     return (f'• {star}<a href="{html.escape(job.url)}">{html.escape(job.title)}</a>'
-            f" — 📍{html.escape(loc)}{fit}")
+            f" — {_display_location(job)}{fit}{reloc}")
 
 
 def format_digest(jobs: list[Job]) -> str:

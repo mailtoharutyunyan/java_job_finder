@@ -31,9 +31,10 @@ aren't backend Java. Only jobs **created within the last 21 days** are posted.
 
 Only jobs workable from Armenia are posted: remote roles open to Armenia's
 region (worldwide / anywhere / Europe / EMEA / unspecified), roles offering
-relocation or visa sponsorship, and roles located in Armenia. On-site-abroad
-and region-locked (e.g. "US only") roles are dropped. Each post is tagged
-#remote / #onsite and #relocation where applicable.
+relocation or visa sponsorship, and roles located in Armenia. On-site-abroad,
+region-locked (e.g. "US only"), and roles that require an existing work permit
+(no sponsorship) are dropped. Sources are interleaved so no single aggregator
+dominates the feed; locations are shown normalized as Worldwide / Remote.
 Optional: JSearch (RapidAPI) adds LinkedIn / Indeed / Glassdoor listings — set
 the `RAPIDAPI_KEY` secret to enable it. It self-limits to ~6×/day to stay under
 the free tier; the other sources run every 15 minutes.
