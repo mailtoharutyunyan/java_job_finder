@@ -26,9 +26,15 @@ QUOTA_HOURS = {0, 4, 8, 12, 16, 20}
 
 
 def _should_run() -> bool:
+    """Fire at most once per quota window.
+
+    The schedule runs every 15 min, so we also require the first quarter of the
+    hour (minute < 15) to avoid 4 calls per qualifying hour blowing the quota.
+    """
     if os.environ.get("JSEARCH_FORCE") == "1":
         return True
-    return datetime.now(timezone.utc).hour in QUOTA_HOURS
+    now = datetime.now(timezone.utc)
+    return now.hour in QUOTA_HOURS and now.minute < 15
 
 
 def _salary(j: dict) -> str:

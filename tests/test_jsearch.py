@@ -59,9 +59,11 @@ def test_fetch_skips_without_key(monkeypatch):
 
 def test_quota_gate_allows_configured_hours():
     with mock.patch.object(jsearch, "datetime") as m:
-        m.now.return_value.hour = 4  # in QUOTA_HOURS
+        m.now.return_value = mock.Mock(hour=4, minute=0)   # in window, first quarter
         assert jsearch._should_run() is True
-        m.now.return_value.hour = 3  # not in QUOTA_HOURS
+        m.now.return_value = mock.Mock(hour=4, minute=30)  # right hour, later quarter
+        assert jsearch._should_run() is False
+        m.now.return_value = mock.Mock(hour=3, minute=0)   # wrong hour
         assert jsearch._should_run() is False
 
 

@@ -2,7 +2,7 @@ name: Post Java jobs
 
 on:
   schedule:
-    - cron: "0 * * * *"   # hourly (UTC); GitHub may start a few minutes late
+    - cron: "*/15 * * * *"   # every 15 min (UTC); GitHub may start a few minutes late
   workflow_dispatch:       # manual runs, with an optional bootstrap toggle
     inputs:
       bootstrap:

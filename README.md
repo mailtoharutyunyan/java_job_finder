@@ -11,7 +11,7 @@ and carries a **📋 View all jobs** button linking to an auto-updated Telegraph
 ## How it works
 
 ```
-hourly cron → fetch sources → filter Java-family → drop already-seen
+every 15 min cron → fetch sources → filter Java-family → drop already-seen
             → refresh Telegraph "all jobs" page → post up to 5 new jobs
             → commit updated state back to the repo
 ```
