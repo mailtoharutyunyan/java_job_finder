@@ -3,12 +3,7 @@ name: Post Java jobs
 on:
   schedule:
     - cron: "*/15 * * * *"   # every 15 min (UTC); GitHub may start a few minutes late
-  workflow_dispatch:       # manual runs, with an optional bootstrap toggle
-    inputs:
-      bootstrap:
-        description: "Mark current jobs as seen without posting"
-        type: boolean
-        default: false
+  workflow_dispatch:       # manual "Run workflow" always does a normal posting run
 
 permissions:
   contents: write          # needed to commit updated state back to the repo
@@ -36,12 +31,7 @@ jobs:
           TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
           TELEGRAPH_ACCESS_TOKEN: ${{ secrets.TELEGRAPH_ACCESS_TOKEN }}
           RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
-        run: |
-          if [ "${{ inputs.bootstrap }}" = "true" ]; then
-            python -m src.main --bootstrap
-          else
-            python -m src.main
-          fi
+        run: python -m src.main
 
       - name: Commit updated state
         run: |

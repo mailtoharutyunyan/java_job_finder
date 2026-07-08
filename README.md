@@ -41,9 +41,8 @@ messages that chat.
      token, which you then save as this secret so the "all jobs" page stays stable.
    - `RAPIDAPI_KEY` *(optional)* — a free [JSearch](https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch)
      key to include LinkedIn/Indeed jobs. Omit to run on the four free sources only.
-5. **First run** — Actions → *Post Java jobs* → *Run workflow*, tick **bootstrap**.
-   This marks the current backlog as seen so the channel starts clean.
-6. Done — the hourly schedule takes over automatically.
+5. **First run** — Actions → *Post Java jobs* → *Run workflow*. It posts the
+   current jobs and then the every-15-min schedule takes over automatically.
 
 ## Local development
 
