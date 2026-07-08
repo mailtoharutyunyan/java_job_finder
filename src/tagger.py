@@ -39,6 +39,19 @@ def hashtags(job: Job) -> list[str]:
     return found
 
 
+def source_hashtag(job: Job) -> str:
+    """Hashtag identifying where the job came from, e.g. #linkedin, #remotive.
+
+    JSearch jobs carry a "jsearch/<publisher>" source, so we tag the publisher
+    (LinkedIn/Indeed/...) rather than the aggregator itself.
+    """
+    src = job.source.lower()
+    if "/" in src:
+        src = src.split("/", 1)[1]
+    src = re.sub(r"[^a-z0-9]", "", src)
+    return f"#{src}" if src else ""
+
+
 def is_profile_match(job: Job) -> bool:
     """True when the job hits the user's target profile (Angular/AWS/AI)."""
     tags = set(hashtags(job))

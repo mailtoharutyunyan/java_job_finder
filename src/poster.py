@@ -9,7 +9,7 @@ import time
 import requests
 
 from .models import Job
-from .tagger import hashtags, is_profile_match
+from .tagger import hashtags, is_profile_match, source_hashtag
 
 log = logging.getLogger(__name__)
 
@@ -33,6 +33,9 @@ def format_message(job: Job) -> str:
     lines.append("")
     lines.append(f'🔗 <a href="{html.escape(job.url)}">Apply</a>')
     tags = hashtags(job)
+    src = source_hashtag(job)
+    if src and src not in tags:
+        tags.append(src)
     if tags:
         lines.append("")
         lines.append(" ".join(tags))

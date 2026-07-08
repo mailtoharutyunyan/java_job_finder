@@ -15,7 +15,7 @@ from pathlib import Path
 import requests
 
 from .models import Job
-from .tagger import hashtags, is_profile_match
+from .tagger import hashtags, is_profile_match, source_hashtag
 
 log = logging.getLogger(__name__)
 
@@ -47,6 +47,9 @@ def _job_nodes(jobs: list[Job]) -> list:
             para_children.append(_node("br", []))
             para_children.append(" · ".join(meta_bits))
         tags = hashtags(job)
+        src = source_hashtag(job)
+        if src and src not in tags:
+            tags.append(src)
         if tags:
             para_children.append(_node("br", []))
             para_children.append(_node("i", [" ".join(tags)]))

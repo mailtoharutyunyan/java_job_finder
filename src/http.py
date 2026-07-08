@@ -1,6 +1,8 @@
 """Tiny HTTP helper with a shared session, timeout, and JSON convenience."""
 from __future__ import annotations
 
+import json
+
 import requests
 
 _HEADERS = {
@@ -23,4 +25,7 @@ def get_json(url: str, params: dict | None = None,
     """
     resp = _session.get(url, params=params, headers=headers, timeout=TIMEOUT)
     resp.raise_for_status()
-    return resp.json()
+    # Decode from raw bytes as UTF-8 rather than trusting requests' charset
+    # guessing, which mangles accented text (e.g. "Sênior" → "SÃªnior") when a
+    # source omits or misdeclares its charset.
+    return json.loads(resp.content)

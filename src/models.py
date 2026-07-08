@@ -6,10 +6,25 @@ import re
 from dataclasses import dataclass, field
 
 
+def _fix_mojibake(text: str) -> str:
+    """Repair UTF-8 that was double-encoded upstream (e.g. "SÃªnior" → "Sênior").
+
+    Only attempted when the classic mojibake markers are present, so correctly
+    encoded text is left untouched.
+    """
+    if "Ã" not in text and "Â" not in text:
+        return text
+    try:
+        return text.encode("latin-1").decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return text
+
+
 def _clean(text: str | None) -> str:
-    """Collapse whitespace and strip HTML tags from a raw text field."""
+    """Collapse whitespace, strip HTML tags, and repair mojibake."""
     if not text:
         return ""
+    text = _fix_mojibake(text)
     text = re.sub(r"<[^>]+>", " ", text)
     text = re.sub(r"\s+", " ", text)
     return text.strip()

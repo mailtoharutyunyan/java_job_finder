@@ -1,6 +1,6 @@
 """Tests for skill hashtag detection and profile matching."""
 from src.models import Job
-from src.tagger import hashtags, is_profile_match
+from src.tagger import hashtags, is_profile_match, source_hashtag
 
 
 def job(title, description="", tags=None):
@@ -34,6 +34,24 @@ def test_profile_match_true_for_aws():
 
 def test_profile_match_false_without_target_skills():
     assert not is_profile_match(job("Java Developer", description="on-prem Oracle DB"))
+
+
+def test_source_hashtag_jsearch_publisher():
+    j = job("Java Dev")
+    j.source = "jsearch/linkedin"
+    assert source_hashtag(j) == "#linkedin"
+
+
+def test_source_hashtag_plain_source():
+    j = job("Java Dev")
+    j.source = "remotive"
+    assert source_hashtag(j) == "#remotive"
+
+
+def test_source_hashtag_strips_special_chars():
+    j = job("Java Dev")
+    j.source = "jsearch/Talent.com"
+    assert source_hashtag(j) == "#talentcom"
 
 
 def test_hashtags_are_unique_and_ordered():
