@@ -19,9 +19,10 @@ from .state import SeenStore
 from .tagger import relevance_score
 from . import telegraph_page
 
-# Post all new jobs each run. A high safety ceiling (overridable via env) guards
-# against a misbehaving source dumping hundreds of posts at once.
-MAX_POSTS_PER_RUN = int(os.environ.get("MAX_POSTS_PER_RUN", "40"))
+# Cap posts per run for a calm, high-signal feed (best-fit first). The full
+# current list is always available via the "View all jobs" page. Overridable
+# via env if you want to clear a backlog faster or slower.
+MAX_POSTS_PER_RUN = int(os.environ.get("MAX_POSTS_PER_RUN", "12"))
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("java-jobs")
