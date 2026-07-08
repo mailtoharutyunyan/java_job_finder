@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "*/15 * * * *"   # every 15 min (UTC); GitHub may start a few minutes late
   workflow_dispatch:       # manual "Run workflow" always does a normal posting run
+    inputs:
+      force_jsearch:
+        description: "Query JSearch (LinkedIn/Indeed) now, ignoring the quota window — uses 1 request"
+        type: boolean
+        default: false
 
 permissions:
   contents: write          # needed to commit updated state back to the repo
@@ -31,6 +36,7 @@ jobs:
           TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
           TELEGRAPH_ACCESS_TOKEN: ${{ secrets.TELEGRAPH_ACCESS_TOKEN }}
           RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+          JSEARCH_FORCE: ${{ inputs.force_jsearch && '1' || '' }}
         run: python -m src.main
 
       - name: Commit updated state
