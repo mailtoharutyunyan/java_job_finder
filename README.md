@@ -18,7 +18,8 @@ every 15 min cron → fetch sources → filter Java-family → drop already-seen
 
 Sources (free, no API keys): Remotive, Arbeitnow, Jobicy, RemoteOK, Himalayas,
 WeWorkRemotely, Working Nomads, The Muse, Landing.jobs, NoDesk, RemoteYeah,
-TryRemotely, RemoteFirstJobs (Java/backend feeds), and company ATS boards via
+TryRemotely, RemoteFirstJobs (Java/backend feeds), EU Remote Jobs, Jobspresso,
+and company ATS boards via
 Greenhouse/Lever (`src/fetchers/ats.py`). Add more RSS feeds in
 `src/fetchers/rssjobs.py` or companies in `ats.py`.
 

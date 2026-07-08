@@ -23,6 +23,8 @@ FEEDS: list[tuple[str, str]] = [
     ("remoteyeah", "https://remoteyeah.com/rss.xml"),
     ("tryremotely", "https://tryremotely.com/feeds/engineering-jobs.rss"),
     ("tryremotely", "https://tryremotely.com/feeds/jobs.rss"),
+    ("euremotejobs", "https://euremotejobs.com/?feed=job_feed"),
+    ("jobspresso", "https://jobspresso.co/?feed=job_feed"),
 ] + [("remotefirstjobs", _RFJ.format(s)) for s in _RFJ_SKILLS]
 
 
