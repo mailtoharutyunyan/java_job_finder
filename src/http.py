@@ -29,3 +29,11 @@ def get_json(url: str, params: dict | None = None,
     # guessing, which mangles accented text (e.g. "Sênior" → "SÃªnior") when a
     # source omits or misdeclares its charset.
     return json.loads(resp.content)
+
+
+def get_text(url: str, params: dict | None = None,
+             headers: dict | None = None) -> str:
+    """GET a URL and return its body as UTF-8 text (used for RSS/XML feeds)."""
+    resp = _session.get(url, params=params, headers=headers, timeout=TIMEOUT)
+    resp.raise_for_status()
+    return resp.content.decode("utf-8", errors="replace")

@@ -14,7 +14,7 @@ import sys
 
 from . import fetchers
 from .filter import filter_java
-from .poster import TelegramPoster
+from .poster import TelegramPoster, send_text
 from .state import SeenStore
 from . import telegraph_page
 
@@ -34,6 +34,18 @@ def dedupe_by_key(jobs):
     return out
 
 
+def _alert(message: str, token: str, dry_run: bool) -> None:
+    """Send a failure alert to the optional alert chat (falls back to logging).
+
+    A non-zero exit already triggers GitHub Actions' built-in failed-run email,
+    so the alert chat is optional and needs no extra setup.
+    """
+    log.error("ALERT: %s", message)
+    alert_chat = os.environ.get("TELEGRAM_ALERT_CHAT_ID")
+    if alert_chat and token and not dry_run:
+        send_text(token, alert_chat, f"⚠️ Java jobs bot: {message}")
+
+
 def run(dry_run: bool = False, bootstrap: bool = False) -> int:
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     channel = os.environ.get("TELEGRAM_CHANNEL_ID", "")
@@ -43,8 +55,13 @@ def run(dry_run: bool = False, bootstrap: bool = False) -> int:
         log.error("TELEGRAM_BOT_TOKEN and TELEGRAM_CHANNEL_ID must be set.")
         return 1
 
-    raw = fetchers.fetch_all()
-    log.info("Fetched %d raw jobs", len(raw))
+    raw, failed = fetchers.fetch_all()
+    log.info("Fetched %d raw jobs (%d sources failed)", len(raw), len(failed))
+
+    # A total fetch failure means every source broke — worth alerting on.
+    if failed and not raw:
+        _alert(f"all job sources failed: {', '.join(failed)}", token, dry_run)
+        return 1
 
     java_jobs = dedupe_by_key(filter_java(raw))
     log.info("%d Java-family jobs after filtering", len(java_jobs))
@@ -73,6 +90,12 @@ def run(dry_run: bool = False, bootstrap: bool = False) -> int:
     poster = TelegramPoster(token, channel, all_jobs_url=page_url, dry_run=dry_run)
     sent = poster.post_batch(to_post)
     log.info("Posted %d/%d jobs", sent, len(to_post))
+
+    # If we had jobs to post but none went through, Telegram/config is broken.
+    if to_post and sent == 0:
+        _alert("could not post any jobs to Telegram (check token/channel)",
+               token, dry_run)
+        return 1
 
     # Only mark jobs we actually sent as seen, so failures retry next run.
     for job in to_post[:sent]:

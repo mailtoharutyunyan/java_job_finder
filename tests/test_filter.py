@@ -1,5 +1,5 @@
 """Tests for the Java-vs-JavaScript filter."""
-from src.filter import filter_java, is_remote_or_relocation, matches
+from src.filter import filter_java, is_remote_or_relocation, is_staffing, matches
 from src.models import Job
 
 
@@ -120,6 +120,29 @@ def test_visa_sponsorship_passes():
 def test_plain_onsite_rejected():
     assert not is_remote_or_relocation(
         loc_job(location="Munich", description="On-site role in our Munich office"))
+
+
+def staff_job(company):
+    return Job(title="Senior Java Developer", company=company,
+               url=f"https://x/{company}", source="test", location="Remote")
+
+
+def test_staffing_companies_detected():
+    assert is_staffing(staff_job("Lemon.io"))
+    assert is_staffing(staff_job("Proxify"))
+    assert is_staffing(staff_job("Toptal"))
+
+
+def test_real_company_not_staffing():
+    assert not is_staffing(staff_job("Acme Corp"))
+    assert not is_staffing(staff_job("Google"))
+
+
+def test_filter_java_excludes_staffing():
+    jobs = [staff_job("Acme Corp"), staff_job("Lemon.io")]
+    kept = filter_java(jobs)
+    assert len(kept) == 1
+    assert kept[0].company == "Acme Corp"
 
 
 def test_filter_java_requires_java_and_location():

@@ -13,7 +13,6 @@ from pathlib import Path
 from .models import Job
 
 RETENTION_DAYS = 60
-PAGE_WINDOW_DAYS = 14
 DEFAULT_PATH = Path(__file__).resolve().parent.parent / "seen_jobs.json"
 
 
@@ -24,57 +23,65 @@ def _now() -> datetime:
 class SeenStore:
     def __init__(self, path: Path = DEFAULT_PATH):
         self.path = path
-        self._seen: dict[str, str] = {}
+        self._urls: dict[str, str] = {}
+        self._content: dict[str, str] = {}
         self.load()
 
     def load(self) -> None:
-        if self.path.exists():
-            try:
-                self._seen = json.loads(self.path.read_text() or "{}")
-            except json.JSONDecodeError:
-                self._seen = {}
+        self._urls = {}
+        self._content = {}
+        if not self.path.exists():
+            return
+        try:
+            raw = json.loads(self.path.read_text() or "{}")
+        except json.JSONDecodeError:
+            return
+        if isinstance(raw, dict) and "urls" in raw:
+            self._urls = raw.get("urls", {})
+            self._content = raw.get("content", {})
         else:
-            self._seen = {}
+            # Migrate the old flat {url_key: ts} format.
+            self._urls = raw if isinstance(raw, dict) else {}
 
     def has(self, job: Job) -> bool:
-        return job.key in self._seen
+        return job.key in self._urls or job.content_key in self._content
 
     def add(self, job: Job) -> None:
-        self._seen[job.key] = _now().isoformat()
+        now = _now().isoformat()
+        self._urls[job.key] = now
+        self._content[job.content_key] = now
 
     def new_jobs(self, jobs: list[Job]) -> list[Job]:
-        """Jobs not yet seen, de-duplicated by key within this batch too."""
-        result, batch = [], set()
+        """Unseen jobs, collapsed by URL and by content within the batch too."""
+        result = []
+        seen_urls, seen_content = set(), set()
         for job in jobs:
-            if job.key in self._seen or job.key in batch:
+            if self.has(job):
                 continue
-            batch.add(job.key)
+            if job.key in seen_urls or job.content_key in seen_content:
+                continue
+            seen_urls.add(job.key)
+            seen_content.add(job.content_key)
             result.append(job)
         return result
 
-    def prune(self) -> None:
-        cutoff = _now().timestamp() - RETENTION_DAYS * 86400
+    @staticmethod
+    def _prune_map(mapping: dict, cutoff: float) -> dict:
         kept = {}
-        for key, ts in self._seen.items():
-            try:
-                seen_ts = datetime.fromisoformat(ts).timestamp()
-            except ValueError:
-                continue
-            if seen_ts >= cutoff:
-                kept[key] = ts
-        self._seen = kept
-
-    def recent_keys(self, days: int = PAGE_WINDOW_DAYS) -> set[str]:
-        cutoff = _now().timestamp() - days * 86400
-        keys = set()
-        for key, ts in self._seen.items():
+        for key, ts in mapping.items():
             try:
                 if datetime.fromisoformat(ts).timestamp() >= cutoff:
-                    keys.add(key)
+                    kept[key] = ts
             except ValueError:
                 continue
-        return keys
+        return kept
+
+    def prune(self) -> None:
+        cutoff = _now().timestamp() - RETENTION_DAYS * 86400
+        self._urls = self._prune_map(self._urls, cutoff)
+        self._content = self._prune_map(self._content, cutoff)
 
     def save(self) -> None:
         self.prune()
-        self.path.write_text(json.dumps(self._seen, indent=2, sort_keys=True))
+        payload = {"urls": self._urls, "content": self._content}
+        self.path.write_text(json.dumps(payload, indent=2, sort_keys=True))

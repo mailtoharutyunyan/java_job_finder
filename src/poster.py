@@ -4,6 +4,7 @@ from __future__ import annotations
 import html
 import json
 import logging
+import re
 import time
 
 import requests
@@ -16,31 +17,139 @@ log = logging.getLogger(__name__)
 API = "https://api.telegram.org/bot{token}/{method}"
 SEND_DELAY_SECONDS = 3
 MAX_MESSAGE_LEN = 4000
+SNIPPET_LEN = 240
+
+# Hashtag → display name for the "stack" line (skills only, not meta tags).
+_STACK_DISPLAY = {
+    "#java": "Java", "#spring": "Spring", "#fullstack": "Full-stack",
+    "#angular": "Angular", "#react": "React", "#ai": "AI/ML", "#aws": "AWS",
+    "#gcp": "GCP", "#azure": "Azure", "#kubernetes": "Kubernetes",
+    "#docker": "Docker", "#kafka": "Kafka", "#microservices": "Microservices",
+    "#kotlin": "Kotlin",
+}
+
+_SOURCE_DISPLAY = {
+    "remotive": "Remotive", "arbeitnow": "Arbeitnow", "jobicy": "Jobicy",
+    "remoteok": "RemoteOK", "himalayas": "Himalayas",
+    "weworkremotely": "WeWorkRemotely", "workingnomads": "Working Nomads",
+    "linkedin": "LinkedIn", "indeed": "Indeed", "glassdoor": "Glassdoor",
+}
+
+
+def _seniority(job: Job) -> str:
+    t = job.haystack
+    if re.search(r"\b(principal|staff|lead|head of)\b", t):
+        return "Lead / Principal"
+    if re.search(r"\b(senior|sr\.?)\b", t):
+        return "Senior"
+    if re.search(r"\b(junior|jr\.?|entry[\s-]?level|graduate|intern)\b", t):
+        return "Junior"
+    if re.search(r"\b(mid|middle|intermediate)\b", t):
+        return "Mid"
+    return ""
+
+
+def _employment_type(job: Job) -> str:
+    t = job.haystack
+    if re.search(r"\b(full[\s-]?time|fulltime)\b", t):
+        return "Full-time"
+    if re.search(r"\b(part[\s-]?time)\b", t):
+        return "Part-time"
+    if re.search(r"\b(contract|freelance|b2b)\b", t):
+        return "Contract"
+    if re.search(r"\b(intern(ship)?)\b", t):
+        return "Internship"
+    return ""
+
+
+def _location_line(job: Job) -> str:
+    loc = job.location or "Remote"
+    icon = "🌍" if re.search(r"world|anywhere|global", loc, re.I) else "📍"
+    return f"{icon} {html.escape(loc)}"
+
+
+def _source_name(job: Job) -> str:
+    src = job.source.split("/")[-1].lower()
+    return _SOURCE_DISPLAY.get(src, src.title())
+
+
+def _stack_line(tags: list[str]) -> str:
+    names = [_STACK_DISPLAY[t] for t in tags if t in _STACK_DISPLAY]
+    return " · ".join(dict.fromkeys(names))
+
+
+def _snippet(text: str) -> str:
+    if not text:
+        return ""
+    t = text.strip()
+    if len(t) > SNIPPET_LEN:
+        t = t[:SNIPPET_LEN].rsplit(" ", 1)[0] + "…"
+    return html.escape(t)
 
 
 def format_message(job: Job) -> str:
-    """Build the HTML-formatted message body for a single job."""
-    lines = []
-    if is_profile_match(job):
-        lines.append("⭐ <b>PROFILE MATCH</b>")
-    lines.append(f"☕ <b>{html.escape(job.title)}</b>")
-    if job.company:
-        lines.append(f"🏢 {html.escape(job.company)}")
-    if job.location:
-        lines.append(f"📍 {html.escape(job.location)}")
-    if job.salary:
-        lines.append(f"💰 {html.escape(job.salary)}")
-    lines.append("")
-    lines.append(f'🔗 <a href="{html.escape(job.url)}">Apply</a>')
+    """Build the rich HTML-formatted message body for a single job."""
     tags = hashtags(job)
+    lines: list[str] = []
+
+    if is_profile_match(job):
+        lines.append("⭐️ <b>PROFILE MATCH</b> ⭐️")
+        lines.append("")
+
+    # Headline: title + company, and where it came from.
+    lines.append(f"☕ <b>{html.escape(job.title)}</b>")
+    company = f"🏢 <b>{html.escape(job.company)}</b>" if job.company else ""
+    company_line = " · ".join(x for x in [company, f"via {_source_name(job)}"] if x)
+    lines.append(company_line)
+    lines.append("")
+
+    # Facts row(s): location, type, seniority, salary.
+    facts = [_location_line(job)]
+    if (etype := _employment_type(job)):
+        facts.append(f"💼 {etype}")
+    if (level := _seniority(job)):
+        facts.append(f"📈 {level}")
+    lines.append("   ".join(facts))
+    if job.salary:
+        lines.append(f"💰 <b>{html.escape(job.salary)}</b>")
+
+    # Tech stack, highlighted.
+    stack = _stack_line(tags)
+    if stack:
+        lines.append(f"🧰 {stack}")
+
+    # Description snippet as a quote block.
+    snippet = _snippet(job.description)
+    if snippet:
+        lines.append("")
+        lines.append(f"<blockquote>{snippet}</blockquote>")
+
+    # Call to action.
+    lines.append("")
+    lines.append(f'👉 <a href="{html.escape(job.url)}"><b>Apply now</b></a>')
+
+    # Hashtags for in-channel search.
     src = source_hashtag(job)
     if src and src not in tags:
         tags.append(src)
     if tags:
         lines.append("")
         lines.append(" ".join(tags))
-    text = "\n".join(lines)
-    return text[:MAX_MESSAGE_LEN]
+
+    return "\n".join(lines)[:MAX_MESSAGE_LEN]
+
+
+def send_text(token: str, chat_id: str, text: str) -> bool:
+    """Send a plain text message (used for failure/health alerts)."""
+    url = API.format(token=token, method="sendMessage")
+    try:
+        resp = requests.post(
+            url, data={"chat_id": chat_id, "text": text}, timeout=20
+        )
+        return resp.status_code == 200 and resp.json().get("ok", False)
+    except requests.RequestException as exc:
+        log.warning("Alert send failed: %s", exc)
+        return False
 
 
 class TelegramPoster:

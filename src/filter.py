@@ -54,7 +54,17 @@ _JS_SIGNALS = [
     r"\bscala\b",
     r"\belixir\b",
     r"\bdjango\b",
+    r"\bflutter\b",
+    r"\bdart\b",
 ]
+
+# Staffing / freelance-marketplace companies whose listings are generic
+# "we use every technology" posts rather than a specific Java role.
+_STAFFING_COMPANIES = {
+    "lemon.io", "toptal", "turing", "andela", "crossover", "x-team", "xteam",
+    "gun.io", "arc.dev", "arc", "braintrust", "proxify", "sowelo consulting",
+    "sowelo", "deel", "remotasks", "scalable path", "scalablepath",
+}
 
 # Titles that indicate an actual software-engineering role. Used to keep
 # description-only Java mentions from matching PM/data-science/design jobs
@@ -144,6 +154,15 @@ def matches(job: Job) -> bool:
     return False
 
 
+def is_staffing(job: Job) -> bool:
+    """True if the employer is a staffing/freelance marketplace (generic posts)."""
+    company = job.company.strip().lower()
+    if not company:
+        return False
+    return any(s == company or s in company.split() or company.startswith(s)
+               for s in _STAFFING_COMPANIES)
+
+
 def is_remote_or_relocation(job: Job) -> bool:
     """True if the job is remote/worldwide or offers relocation/visa support.
 
@@ -160,5 +179,8 @@ def is_remote_or_relocation(job: Job) -> bool:
 
 
 def filter_java(jobs: list[Job]) -> list[Job]:
-    """Java-family jobs that are also remote/worldwide or offer relocation."""
-    return [j for j in jobs if matches(j) and is_remote_or_relocation(j)]
+    """Java-family, remote/relocation jobs, excluding staffing marketplaces."""
+    return [
+        j for j in jobs
+        if matches(j) and is_remote_or_relocation(j) and not is_staffing(j)
+    ]

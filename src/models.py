@@ -59,6 +59,21 @@ class Job:
         return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
 
     @property
+    def content_key(self) -> str:
+        """Cross-source dedupe key: same company + title on another board.
+
+        Normalizes away punctuation, seniority abbreviations, and gender tags
+        so the same role posted to LinkedIn, Indeed and a company site collapses
+        to one entry regardless of which URL it came from.
+        """
+        text = f"{self.company} {self.title}".lower()
+        text = re.sub(r"\(m/w/d\)|\(f/m/d\)|\bm/w/d\b", " ", text)
+        text = re.sub(r"\bsr\b", "senior", text)
+        text = re.sub(r"\bjr\b", "junior", text)
+        text = re.sub(r"[^a-z0-9]", "", text)
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+    @property
     def haystack(self) -> str:
         """Lowercased blob of all searchable text for filtering/tagging."""
         return " ".join(

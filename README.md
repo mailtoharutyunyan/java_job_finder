@@ -16,10 +16,17 @@ every 15 min cron → fetch sources → filter Java-family → drop already-seen
             → commit updated state back to the repo
 ```
 
-Sources (free, no API keys): Remotive, Arbeitnow, Jobicy, RemoteOK.
+Sources (free, no API keys): Remotive, Arbeitnow, Jobicy, RemoteOK, Himalayas,
+WeWorkRemotely, Working Nomads.
 Optional: JSearch (RapidAPI) adds LinkedIn / Indeed / Glassdoor listings — set
-the `RAPIDAPI_KEY` secret to enable it. It self-limits to every 4 hours (~180
-requests/month) to stay under the free tier; the other sources still run hourly.
+the `RAPIDAPI_KEY` secret to enable it. It self-limits to ~6×/day to stay under
+the free tier; the other sources run every 15 minutes.
+
+Duplicate listings for the same role across boards are collapsed to one post
+(matched on company + title). Staffing/freelance-marketplace posts (Lemon.io,
+Toptal, Proxify, …) are filtered out. If every source fails in a run, the bot
+exits non-zero (GitHub emails you) and, if `TELEGRAM_ALERT_CHAT_ID` is set,
+messages that chat.
 
 ## Setup (one-time, ~5 min)
 
