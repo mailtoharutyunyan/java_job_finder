@@ -20,7 +20,7 @@ def test_message_contains_core_fields():
 def test_profile_match_badge_present():
     j = Job(title="Java Developer", company="Acme",
             url="https://example.com/2", source="test",
-            description="AWS Angular AI")
+            description="Kafka, gRPC, reactive microservices on Kubernetes")
     assert "PROFILE MATCH" in format_message(j)
 
 

@@ -20,7 +20,13 @@ _TAGS: list[tuple[str, list[str]]] = [
     ("docker", [r"\bdocker\b"]),
     ("kafka", [r"\bkafka\b"]),
     ("microservices", [r"\bmicroservices?\b"]),
+    ("grpc", [r"\bgrpc\b", r"\bprotobuf\b"]),
+    ("micronaut", [r"\bmicronaut\b"]),
+    ("reactive", [r"\breactive\b", r"\bwebflux\b", r"\br2dbc\b"]),
     ("kotlin", [r"\bkotlin\b"]),
+    ("postgres", [r"\bpostgres(ql)?\b"]),
+    ("redis", [r"\bredis\b"]),
+    ("eventdriven", [r"\bevent[\s-]driven\b"]),
     ("senior", [r"\bsenior\b", r"\bsr\.?\b", r"\bstaff\b", r"\bprincipal\b", r"\blead\b"]),
     ("junior", [r"\bjunior\b", r"\bjr\.?\b", r"\bentry[\s-]?level\b"]),
 ]
@@ -62,26 +68,40 @@ def source_hashtag(job: Job) -> str:
     return f"#{src}" if src else ""
 
 
+# Standout skills from the target CV — a job hitting ≥2 (or any Go) is a match.
+_PROFILE_STANDOUT = re.compile(
+    r"\bgrpc\b|\bprotobuf\b|\bmicronaut\b|\bkafka\b|\breactive\b|\bwebflux\b"
+    r"|\br2dbc\b|event[\s-]driven|\bkubernetes\b|\bgraalvm\b|\bmicroservices?\b",
+    re.I,
+)
+
+
 def is_profile_match(job: Job) -> bool:
-    """True when the job hits the user's target profile (Angular/AWS/AI)."""
-    tags = set(hashtags(job))
-    return bool({"#angular", "#aws", "#ai"} & tags)
+    """⭐ when the job strongly matches the CV: a Go role, or ≥2 standout skills
+    (gRPC, Micronaut, Kafka, reactive, event-driven, Kubernetes, microservices)."""
+    text = job.haystack
+    if go_fit(job):
+        return True
+    return len(set(_PROFILE_STANDOUT.findall(text))) >= 2
 
 
-# Backend skills that count toward either a Java or a Go role.
+# Backend skills that count toward either a Java or a Go role (CV-weighted).
 _SHARED_FIT = [
     (r"\bmicroservices?\b", 7),
-    (r"\bkafka\b", 5),
+    (r"\bkafka\b", 6),
+    (r"\bgrpc\b|\bprotobuf\b", 6),
+    (r"\breactive\b|\bwebflux\b|\br2dbc\b", 5),
+    (r"event[\s-]driven", 5),
     (r"\baws\b", 5),
     (r"\bkubernetes\b|\bk8s\b", 4),
     (r"\bdocker\b", 3),
-    (r"\b(ai|machine learning|llm|genai)\b", 3),
+    (r"\b(postgres|postgresql|redis|elasticsearch|mongodb)\b", 2),
 ]
 _JAVA_FIT = [
     (r"\bjava\b", 10),
     (r"\bspring( boot)?\b", 10),
+    (r"\bmicronaut\b", 8),
     (r"\bhibernate\b", 3),
-    (r"\bangular\b", 3),
     (r"\bkotlin\b", 2),
 ]
 _GO_FIT = [(r"\bgolang\b", 10)]

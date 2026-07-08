@@ -28,8 +28,12 @@ def test_detects_ai():
     assert "#ai" in tags
 
 
-def test_profile_match_true_for_aws():
-    assert is_profile_match(job("Java Developer", description="AWS cloud platform"))
+def test_profile_match_true_for_cv_skills():
+    # Two standout CV skills (Kafka + gRPC microservices) → match.
+    assert is_profile_match(
+        job("Java Developer", description="Kafka, gRPC microservices, Kubernetes"))
+    # Any Go role is a match.
+    assert is_profile_match(job("Golang Developer", description="backend services"))
 
 
 def test_profile_match_false_without_target_skills():
