@@ -31,16 +31,25 @@ def test_no_badge_without_profile_skills():
     assert "PROFILE MATCH" not in format_message(j)
 
 
-def test_digest_contains_multiple_jobs_numbered():
+def test_digest_lists_jobs_as_links():
     jobs = [Job(title=f"Java Developer {n}", company=f"Co{n}",
-                url=f"https://example.com/{n}", source="test", location="Remote",
-                description="Spring Boot backend role")
+                url=f"https://example.com/{n}", source="test", location="Remote")
             for n in range(1, 4)]
     msg = format_digest(jobs)
-    assert "1. Java Developer 1" in msg
-    assert "3. Java Developer 3" in msg
     assert "3 new" in msg
-    assert msg.count("Apply") == 3
+    for n in range(1, 4):
+        assert f'<a href="https://example.com/{n}">Java Developer {n}</a>' in msg
+
+
+def test_digest_groups_by_company():
+    jobs = [
+        Job(title="Java Dev A", company="Acme", url="https://x/a", source="test"),
+        Job(title="Java Dev B", company="Acme", url="https://x/b", source="test"),
+        Job(title="Java Dev C", company="Beta", url="https://x/c", source="test"),
+    ]
+    msg = format_digest(jobs)
+    assert msg.count("<b>Acme</b>") == 1
+    assert msg.count("<b>Beta</b>") == 1
 
 
 def test_digest_shows_source_website():
@@ -53,12 +62,11 @@ def test_digest_shows_source_website():
 
 
 def test_digest_caps_at_size():
-    jobs = [Job(title=f"Java Dev {n}", company="Co", url=f"https://x/{n}",
+    jobs = [Job(title=f"Java Dev {n}", company=f"Co{n}", url=f"https://x/{n}",
                 source="test") for n in range(20)]
     msg = format_digest(jobs)
-    # Only DIGEST_SIZE entries rendered.
-    assert f"{DIGEST_SIZE}. Java Dev" in msg
-    assert f"{DIGEST_SIZE + 1}. Java Dev" not in msg
+    assert ">Java Dev 0<" in msg
+    assert f">Java Dev {DIGEST_SIZE}<" not in msg  # 11th job (index 10) excluded
 
 
 def test_html_is_sanitized():

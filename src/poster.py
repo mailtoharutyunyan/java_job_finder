@@ -159,38 +159,42 @@ def format_message(job: Job) -> str:
 DIGEST_SIZE = 10
 
 
-def _digest_entry(n: int, job: Job) -> str:
-    """One compact job block for a digest message (no image, short blurb)."""
-    tags = hashtags(job)
-    badge = "⭐ " if is_profile_match(job) else ""
-    head = f"{badge}<b>{n}. {html.escape(job.title)}</b>"
-
-    meta = [f"🏢 {html.escape(job.company)}"] if job.company else []
-    meta.append(_location_line(job))
-    fit = []
+def _bullet(job: Job) -> str:
+    """A single clickable job line under its company heading."""
+    star = "⭐ " if is_profile_match(job) else ""
+    fit = ""
     if java_fit(job):
-        fit.append(f"☕{java_fit(job)}")
-    if go_fit(job):
-        fit.append(f"🐹{go_fit(job)}")
-    if fit:
-        meta.append(" ".join(fit))
-
-    parts = [head, " · ".join(meta), f"🌐 {html.escape(_source_name(job))}"]
-    snippet = _snippet(job.description, 130)
-    if snippet:
-        parts.append(snippet)
-    tagline = " ".join(hashtags(job)[:4])
-    parts.append(f'🔗 <a href="{html.escape(job.url)}">Apply</a>'
-                 + (f"  {tagline}" if tagline else ""))
-    return "\n".join(parts)
+        fit = f" · ☕{java_fit(job)}"
+    elif go_fit(job):
+        fit = f" · 🐹{go_fit(job)}"
+    loc = job.location or "Remote"
+    return (f'• {star}<a href="{html.escape(job.url)}">{html.escape(job.title)}</a>'
+            f" — 📍{html.escape(loc)}{fit}")
 
 
 def format_digest(jobs: list[Job]) -> str:
-    """Build one digest message covering up to DIGEST_SIZE jobs."""
+    """Build one digest message: jobs grouped by company, titles as links."""
     jobs = jobs[:DIGEST_SIZE]
+    # Group by company, preserving fit-sorted order.
+    groups: dict[str, list[Job]] = {}
+    order: list[str] = []
+    for job in jobs:
+        key = job.company or "Other"
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(job)
+
+    blocks = []
+    for company in order:
+        cjobs = groups[company]
+        head = (f"<b>{html.escape(company)}</b> · 🌐 "
+                f"{html.escape(_source_name(cjobs[0]))}")
+        bullets = "\n".join(_bullet(j) for j in cjobs)
+        blocks.append(f"{head}\n{bullets}")
+
     header = f"📋 <b>Java &amp; Go jobs</b> · {len(jobs)} new"
-    entries = [_digest_entry(i + 1, j) for i, j in enumerate(jobs)]
-    return (header + "\n\n" + "\n\n".join(entries))[:MAX_MESSAGE_LEN]
+    return (header + "\n\n" + "\n\n".join(blocks))[:MAX_MESSAGE_LEN]
 
 
 def send_text(token: str, chat_id: str, text: str) -> bool:
