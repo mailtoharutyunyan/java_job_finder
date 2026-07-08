@@ -9,8 +9,11 @@ from . import (
     himalayas,
     jobicy,
     jsearch,
+    landingjobs,
+    nodesk,
     remoteok,
     remotive,
+    rssjobs,
     themuse,
     weworkremotely,
     workingnomads,
@@ -30,6 +33,9 @@ _SOURCES = [
     weworkremotely,
     workingnomads,
     themuse,
+    landingjobs,
+    nodesk,
+    rssjobs,
     jsearch,
 ]
 

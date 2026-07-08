@@ -17,7 +17,9 @@ every 15 min cron → fetch sources → filter Java-family → drop already-seen
 ```
 
 Sources (free, no API keys): Remotive, Arbeitnow, Jobicy, RemoteOK, Himalayas,
-WeWorkRemotely, Working Nomads, The Muse.
+WeWorkRemotely, Working Nomads, The Muse, Landing.jobs, NoDesk, RemoteYeah,
+TryRemotely, RemoteFirstJobs (Java/backend feeds). Add more RSS feeds by
+appending to `FEEDS` in `src/fetchers/rssjobs.py`.
 Only jobs workable from Armenia are posted: remote roles open to Armenia's
 region (worldwide / anywhere / Europe / EMEA / unspecified), roles offering
 relocation or visa sponsorship, and roles located in Armenia. On-site-abroad

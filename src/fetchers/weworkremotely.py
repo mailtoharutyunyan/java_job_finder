@@ -16,6 +16,7 @@ log = logging.getLogger(__name__)
 FEEDS = [
     "https://weworkremotely.com/categories/remote-back-end-programming-jobs.rss",
     "https://weworkremotely.com/categories/remote-full-stack-programming-jobs.rss",
+    "https://weworkremotely.com/categories/remote-programming-jobs.rss",
 ]
 
 
