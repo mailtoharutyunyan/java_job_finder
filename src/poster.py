@@ -26,7 +26,7 @@ _STACK_DISPLAY = {
     "#angular": "Angular", "#react": "React", "#ai": "AI/ML", "#aws": "AWS",
     "#gcp": "GCP", "#azure": "Azure", "#kubernetes": "Kubernetes",
     "#docker": "Docker", "#kafka": "Kafka", "#microservices": "Microservices",
-    "#kotlin": "Kotlin",
+    "#kotlin": "Kotlin", "#golang": "Go",
 }
 
 _SOURCE_DISPLAY = {

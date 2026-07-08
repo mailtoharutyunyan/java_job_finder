@@ -7,8 +7,12 @@ roles are rejected unless they carry an independent Java signal.
 from __future__ import annotations
 
 import re
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 from .models import Job
+
+MAX_AGE_DAYS = 14  # only post jobs created within this many days
 
 # Genuine Java signals. Word boundaries keep "java" from matching "javascript".
 _JAVA_SIGNALS = [
@@ -45,8 +49,6 @@ _JS_SIGNALS = [
     r"\brails\b",
     r"\bphp\b",
     r"\blaravel\b",
-    r"\bgolang\b",
-    r"\bgo developer\b",
     r"\brust\b",
     r"\bc#",
     r"\.net\b",
@@ -120,14 +122,18 @@ _REMOTE_RE = [re.compile(p) for p in _REMOTE_SIGNALS]
 _RELOCATION_RE = [re.compile(p) for p in _RELOCATION_SIGNALS]
 
 
+_GOLANG_RE = re.compile(r"\bgolang\b")   # unambiguous Go signal
+_GO_WORD_RE = re.compile(r"\bgo\b")       # ambiguous ("go to market") — needs context
+
+
 def _has_java(text: str) -> bool:
     return any(r.search(text) for r in _JAVA_RE)
 
 
-def _title_is_non_java(title: str) -> bool:
-    """True when the TITLE names a competing stack and has no Java signal."""
+def _title_is_offtopic(title: str) -> bool:
+    """True when the TITLE names a competing stack and has no Java/Go signal."""
     t = title.lower()
-    if _has_java(t):
+    if _has_java(t) or _GOLANG_RE.search(t) or _GO_WORD_RE.search(t):
         return False
     return any(r.search(t) for r in _JS_RE)
 
@@ -137,29 +143,40 @@ def _title_is_dev_role(title: str) -> bool:
     return any(r.search(t) for r in _DEV_TITLE_RE)
 
 
-def matches(job: Job) -> bool:
-    """Return True if this is a Java-family job worth posting.
-
-    A Java signal in the title or tags is trusted outright. A Java signal that
-    appears only in the free-text description must be backed by an
-    engineering-role title — otherwise product/data/design listings that dump a
-    full tech stack into their description would slip through.
-    """
-    # Reject titles naming a competing stack (JS/Python/…) with no Java signal.
-    if _title_is_non_java(job.title):
-        return False
-
-    # A Java signal in the title is trusted outright.
+def _java_match(job: Job) -> bool:
     if _has_java(job.title.lower()):
         return True
-
-    # A signal only in tags/description must be backed by an engineering-role
-    # title, or marketplace listings (PM, data science, design) that tag/list a
-    # full stack would slip through.
     if _has_java(" ".join(job.tags)) or _has_java(job.description.lower()):
         return _title_is_dev_role(job.title)
-
     return False
+
+
+def _go_match(job: Job) -> bool:
+    """Match Go/Golang roles. "golang" is trusted; bare "go" needs a dev title
+    (so "Go To Market Manager" doesn't slip in)."""
+    title = job.title.lower()
+    if _GOLANG_RE.search(title):
+        return True
+    tags = " ".join(job.tags).lower()
+    if _GOLANG_RE.search(tags) or _GO_WORD_RE.search(tags):
+        return _title_is_dev_role(job.title)
+    if _GOLANG_RE.search(job.description.lower()):
+        return _title_is_dev_role(job.title)
+    if _GO_WORD_RE.search(title):
+        return _title_is_dev_role(job.title)
+    return False
+
+
+def matches(job: Job) -> bool:
+    """True if this is a Java- or Go-family job worth posting.
+
+    A language signal in the title/tags is trusted; a description-only signal
+    must be backed by an engineering-role title so product/data/design listings
+    that merely dump a tech stack don't slip through.
+    """
+    if _title_is_offtopic(job.title):
+        return False
+    return _java_match(job) or _go_match(job)
 
 
 def is_staffing(job: Job) -> bool:
@@ -186,6 +203,48 @@ _REGION_LOCKED = re.compile(
     r"authorized to work in the u)\b",
     re.I,
 )
+
+
+def _parse_date(raw: str) -> datetime | None:
+    """Parse the many published_at formats sources use → aware datetime or None.
+
+    Handles RFC-822 (RSS pubDate), ISO-8601 (with Z), and unix timestamps in
+    seconds or milliseconds.
+    """
+    if not raw:
+        return None
+    raw = raw.strip()
+    # Unix timestamp (seconds or milliseconds).
+    if raw.isdigit():
+        ts = int(raw)
+        if ts > 1e12:  # milliseconds
+            ts /= 1000
+        try:
+            return datetime.fromtimestamp(ts, tz=timezone.utc)
+        except (ValueError, OSError):
+            return None
+    # ISO-8601.
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    except ValueError:
+        pass
+    # RFC-822 (e.g. "Wed, 08 Jul 2026 20:07:47 +0000").
+    try:
+        dt = parsedate_to_datetime(raw)
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        return None
+
+
+def is_recent(job: Job, max_age_days: int = MAX_AGE_DAYS) -> bool:
+    """True if the job was created within max_age_days. Unknown dates pass
+    (we don't drop a job just because its source omitted a date)."""
+    posted = _parse_date(job.published_at)
+    if posted is None:
+        return True
+    age = (datetime.now(timezone.utc) - posted).days
+    return age <= max_age_days
 
 
 def offers_relocation(job: Job) -> bool:
@@ -238,4 +297,5 @@ def filter_java(jobs: list[Job]) -> list[Job]:
     return [
         j for j in jobs
         if matches(j) and not is_staffing(j) and workable_from_armenia(j)
+        and is_recent(j)
     ]

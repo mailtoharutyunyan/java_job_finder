@@ -29,6 +29,9 @@ roles (Android/iOS) are excluded — they use Java/Kotlin but aren't backend Jav
 
 Posts are marked 🔴 CLOSED once they pass a source-provided expiry date or are
 30+ days old (the bot remembers each post's message id and edits it in place).
+Covers **Java and Go/Golang** backend roles. Only jobs **created within the
+last 14 days** are posted (older listings are usually filled).
+
 Only jobs workable from Armenia are posted: remote roles open to Armenia's
 region (worldwide / anywhere / Europe / EMEA / unspecified), roles offering
 relocation or visa sponsorship, and roles located in Armenia. On-site-abroad

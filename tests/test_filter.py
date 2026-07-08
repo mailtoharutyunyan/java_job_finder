@@ -1,12 +1,44 @@
 """Tests for the Java-vs-JavaScript filter."""
+from datetime import datetime, timedelta, timezone
+
 from src.filter import (
     filter_java,
+    is_recent,
     is_remote_or_relocation,
     is_staffing,
     matches,
     workable_from_armenia,
 )
 from src.models import Job
+
+
+def _dated(published_at):
+    return Job(title="Java Developer", company="Acme", url="https://x/1",
+               source="t", location="Remote", published_at=published_at)
+
+
+def test_recent_within_two_weeks():
+    recent = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
+    assert is_recent(_dated(recent))
+
+
+def test_old_job_rejected():
+    old = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    assert not is_recent(_dated(old))
+
+
+def test_rss_pubdate_format_parsed():
+    old = "Mon, 01 Jan 2020 12:00:00 +0000"
+    assert not is_recent(_dated(old))
+
+
+def test_unix_timestamp_parsed():
+    recent = str(int((datetime.now(timezone.utc) - timedelta(days=2)).timestamp()))
+    assert is_recent(_dated(recent))
+
+
+def test_unknown_date_kept():
+    assert is_recent(_dated(""))
 
 
 def job(title, description="", tags=None):
@@ -60,8 +92,16 @@ def test_python_title_with_polluted_java_tag_rejected():
     assert not matches(job("Python Developer Brazil", tags=["java", "python"]))
 
 
-def test_go_developer_rejected():
-    assert not matches(job("Golang Developer", tags=["java", "golang"]))
+def test_golang_now_accepted():
+    assert matches(job("Golang Developer"))
+    assert matches(job("Senior Go Engineer"))
+    assert matches(job("Backend Engineer", tags=["go", "kubernetes"]))
+
+
+def test_go_false_positive_rejected():
+    # "go" as an English word must not make a non-dev role match.
+    assert not matches(job("Go To Market Manager"))
+    assert not matches(job("Growth Lead", description="we will go fast"))
 
 
 def test_frontend_only_rejected():

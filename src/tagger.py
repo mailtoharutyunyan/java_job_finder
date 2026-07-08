@@ -38,6 +38,10 @@ def hashtags(job: Job) -> list[str]:
     for tag, patterns in _COMPILED:
         if any(p.search(text) for p in patterns):
             found.append(f"#{tag}")
+    # Go: "golang" anywhere, or bare "go" only in title/tags (never prose).
+    struct = f"{job.title} {' '.join(job.tags)}".lower()
+    if re.search(r"\bgolang\b", text) or re.search(r"\bgo\b", struct):
+        found.append("#golang")
     # Remote vs on-site is judged from the location (not the description).
     found.append("#remote" if job.is_remote else "#onsite")
     if _RELOCATION_RE.search(job.description):
@@ -67,6 +71,7 @@ def is_profile_match(job: Job) -> bool:
 # Weighted keywords for ranking a job's fit for a Java developer.
 _SCORE_WEIGHTS: list[tuple[str, int]] = [
     (r"\bjava\b", 10),
+    (r"\bgolang\b", 10),
     (r"\bspring( boot)?\b", 10),
     (r"\bmicroservices?\b", 7),
     (r"\bkafka\b", 5),

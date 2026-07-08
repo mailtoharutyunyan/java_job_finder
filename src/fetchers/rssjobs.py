@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 _RFJ = "https://remotefirstjobs.com/rss/jobs/{}.rss"
 _RFJ_SKILLS = [
     "java", "backend", "kotlin", "microservices", "aws", "docker",
-    "kubernetes", "cloud", "backend-engineer",
+    "kubernetes", "cloud", "backend-engineer", "golang", "go",
 ]
 
 FEEDS: list[tuple[str, str]] = [

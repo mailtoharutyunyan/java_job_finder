@@ -20,10 +20,10 @@ from .state import SeenStore
 from .tagger import relevance_score
 from . import telegraph_page
 
-# Cap posts per run for a calm, high-signal feed (best-fit first). The full
-# current list is always available via the "View all jobs" page. Overridable
-# via env if you want to clear a backlog faster or slower.
-MAX_POSTS_PER_RUN = int(os.environ.get("MAX_POSTS_PER_RUN", "12"))
+# Post all new jobs each run (best-fit first). The high default is effectively
+# "no cap"; a 3s delay between sends respects Telegram's rate limit. Lower it
+# via the MAX_POSTS_PER_RUN env var if you want a calmer feed.
+MAX_POSTS_PER_RUN = int(os.environ.get("MAX_POSTS_PER_RUN", "1000"))
 MAX_CLOSURES_PER_RUN = 20      # cap CLOSED edits per run to respect rate limits
 CLOSE_DELAY_SECONDS = 2
 
