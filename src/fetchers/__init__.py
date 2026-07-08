@@ -6,6 +6,7 @@ import logging
 from ..models import Job
 from . import (
     arbeitnow,
+    ats,
     himalayas,
     jobicy,
     jsearch,
@@ -36,6 +37,7 @@ _SOURCES = [
     landingjobs,
     nodesk,
     rssjobs,
+    ats,
     jsearch,
 ]
 

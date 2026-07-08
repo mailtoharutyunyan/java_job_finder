@@ -72,6 +72,15 @@ def test_dotnet_rejected():
     assert not matches(job("Senior .NET Engineer", description="C# and Java interop"))
 
 
+def test_android_rejected():
+    assert not matches(job("Android Developer", description="Kotlin, Java, Android SDK"))
+
+
+def test_ios_and_mobile_rejected():
+    assert not matches(job("iOS Engineer", description="Swift, Java backend"))
+    assert not matches(job("Mobile Developer", description="Java, Kotlin, React Native"))
+
+
 def test_javascript_substring_does_not_trigger_java():
     # "javascript" must not be read as a Java signal.
     assert not matches(job("JavaScript Developer", description="pure javascript role"))

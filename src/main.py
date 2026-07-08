@@ -16,6 +16,7 @@ from . import fetchers
 from .filter import filter_java
 from .poster import TelegramPoster, send_text
 from .state import SeenStore
+from .tagger import relevance_score
 from . import telegraph_page
 
 # Post all new jobs each run. A high safety ceiling (overridable via env) guards
@@ -65,7 +66,9 @@ def run(dry_run: bool = False, bootstrap: bool = False) -> int:
         _alert(f"all job sources failed: {', '.join(failed)}", token, dry_run)
         return 1
 
-    java_jobs = dedupe_by_key(filter_java(raw))
+    # Strongest Java matches first (affects both the page and posting order).
+    java_jobs = sorted(dedupe_by_key(filter_java(raw)),
+                       key=relevance_score, reverse=True)
     log.info("%d Java-family jobs after filtering", len(java_jobs))
 
     store = SeenStore()

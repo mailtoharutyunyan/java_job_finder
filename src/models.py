@@ -73,8 +73,13 @@ class Job:
         so the same role posted to LinkedIn, Indeed and a company site collapses
         to one entry regardless of which URL it came from.
         """
-        text = f"{self.company} {self.title}".lower()
-        text = re.sub(r"\(m/w/d\)|\(f/m/d\)|\bm/w/d\b", " ", text)
+        # Drop location/qualifier decorations some boards append to titles,
+        # e.g. "Staff Backend Engineer - Alerting | Germany | Remote", so the
+        # same role in 5 countries collapses to one key.
+        title = self.title.split("|")[0]
+        title = re.sub(r"\(.*?\)", " ", title)  # strip parentheticals
+        text = f"{self.company} {title}".lower()
+        text = re.sub(r"\bm/w/d\b|\bf/m/d\b", " ", text)
         text = re.sub(r"\bsr\b", "senior", text)
         text = re.sub(r"\bjr\b", "junior", text)
         text = re.sub(r"[^a-z0-9]", "", text)

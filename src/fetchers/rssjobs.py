@@ -13,12 +13,17 @@ from ..models import Job
 
 log = logging.getLogger(__name__)
 
+_RFJ = "https://remotefirstjobs.com/rss/jobs/{}.rss"
+_RFJ_SKILLS = [
+    "java", "backend", "kotlin", "microservices", "aws", "docker",
+    "kubernetes", "cloud", "backend-engineer",
+]
+
 FEEDS: list[tuple[str, str]] = [
     ("remoteyeah", "https://remoteyeah.com/rss.xml"),
     ("tryremotely", "https://tryremotely.com/feeds/engineering-jobs.rss"),
-    ("remotefirstjobs", "https://remotefirstjobs.com/rss/jobs/java.rss"),
-    ("remotefirstjobs", "https://remotefirstjobs.com/rss/jobs/backend.rss"),
-]
+    ("tryremotely", "https://tryremotely.com/feeds/jobs.rss"),
+] + [("remotefirstjobs", _RFJ.format(s)) for s in _RFJ_SKILLS]
 
 
 def _title_company(item: dict) -> tuple[str, str]:

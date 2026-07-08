@@ -56,6 +56,14 @@ _JS_SIGNALS = [
     r"\bdjango\b",
     r"\bflutter\b",
     r"\bdart\b",
+    # Mobile roles use Java/Kotlin but aren't the backend Java jobs we want.
+    r"\bandroid\b",
+    r"\bios\b",
+    r"\bmobile\b",
+    r"\breact native\b",
+    r"\bswift\b",
+    r"\bobjective[\s-]?c\b",
+    r"\bxamarin\b",
 ]
 
 # Staffing / freelance-marketplace companies whose listings are generic

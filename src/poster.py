@@ -10,7 +10,7 @@ import time
 import requests
 
 from .models import Job
-from .tagger import hashtags, is_profile_match, source_hashtag
+from .tagger import hashtags, is_profile_match, relevance_score, source_hashtag
 
 log = logging.getLogger(__name__)
 
@@ -117,6 +117,13 @@ def format_message(job: Job) -> str:
     stack = _stack_line(tags)
     if stack:
         lines.append(f"🧰 {stack}")
+
+    # Java-fit score (out of the max weighted keywords).
+    score = relevance_score(job)
+    if score:
+        filled = min(5, round(score / 8))
+        meter = "🟩" * filled + "⬜" * (5 - filled)
+        lines.append(f"🎯 Java fit: {meter} ({score})")
 
     # Description snippet as a quote block.
     snippet = _snippet(job.description)

@@ -18,8 +18,13 @@ every 15 min cron → fetch sources → filter Java-family → drop already-seen
 
 Sources (free, no API keys): Remotive, Arbeitnow, Jobicy, RemoteOK, Himalayas,
 WeWorkRemotely, Working Nomads, The Muse, Landing.jobs, NoDesk, RemoteYeah,
-TryRemotely, RemoteFirstJobs (Java/backend feeds). Add more RSS feeds by
-appending to `FEEDS` in `src/fetchers/rssjobs.py`.
+TryRemotely, RemoteFirstJobs (Java/backend feeds), and company ATS boards via
+Greenhouse/Lever (`src/fetchers/ats.py`). Add more RSS feeds in
+`src/fetchers/rssjobs.py` or companies in `ats.py`.
+
+Jobs are ranked by a Java-fit score (Java/Spring/microservices/Kafka/AWS/… are
+weighted) so the strongest matches post first and show a 🎯 fit meter. Mobile
+roles (Android/iOS) are excluded — they use Java/Kotlin but aren't backend Java.
 Only jobs workable from Armenia are posted: remote roles open to Armenia's
 region (worldwide / anywhere / Europe / EMEA / unspecified), roles offering
 relocation or visa sponsorship, and roles located in Armenia. On-site-abroad

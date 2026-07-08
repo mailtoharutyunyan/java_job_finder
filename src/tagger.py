@@ -62,3 +62,26 @@ def is_profile_match(job: Job) -> bool:
     """True when the job hits the user's target profile (Angular/AWS/AI)."""
     tags = set(hashtags(job))
     return bool({"#angular", "#aws", "#ai"} & tags)
+
+
+# Weighted keywords for ranking a job's fit for a Java developer.
+_SCORE_WEIGHTS: list[tuple[str, int]] = [
+    (r"\bjava\b", 10),
+    (r"\bspring( boot)?\b", 10),
+    (r"\bmicroservices?\b", 7),
+    (r"\bkafka\b", 5),
+    (r"\baws\b", 5),
+    (r"\bkubernetes\b|\bk8s\b", 4),
+    (r"\bhibernate\b", 3),
+    (r"\bdocker\b", 3),
+    (r"\bangular\b", 3),
+    (r"\b(ai|machine learning|llm|genai)\b", 3),
+    (r"\bkotlin\b", 2),
+]
+_SCORE_RE = [(re.compile(p), w) for p, w in _SCORE_WEIGHTS]
+
+
+def relevance_score(job: Job) -> int:
+    """Higher = better fit for a Java developer (keyword-weighted)."""
+    text = job.haystack
+    return sum(w for r, w in _SCORE_RE if r.search(text))
