@@ -15,7 +15,7 @@ import time
 
 from . import fetchers
 from .filter import filter_java
-from .poster import TelegramPoster, send_text
+from .poster import DIGEST_SIZE, SEND_DELAY_SECONDS, TelegramPoster, send_text
 from .state import SeenStore
 from .tagger import relevance_score
 from . import telegraph_page
@@ -96,23 +96,26 @@ def run(dry_run: bool = False, bootstrap: bool = False) -> int:
     if overflow > 0:
         log.info("Posting %d now; %d roll to next run.", len(to_post), overflow)
 
+    # Group jobs into digest messages (N per message, no image previews).
     poster = TelegramPoster(token, channel, all_jobs_url=page_url, dry_run=dry_run)
-    results = poster.post_batch(to_post)
-    log.info("Posted %d/%d jobs", len(results), len(to_post))
+    digests = [to_post[i:i + DIGEST_SIZE] for i in range(0, len(to_post), DIGEST_SIZE)]
+    posted, sent_digests = [], 0
+    for i, chunk in enumerate(digests):
+        if poster.post_digest(chunk) is not None:
+            posted.extend(chunk)
+            sent_digests += 1
+        if not dry_run and i < len(digests) - 1:
+            time.sleep(SEND_DELAY_SECONDS)
+    log.info("Posted %d jobs across %d digest message(s)", len(posted), sent_digests)
 
-    # If we had jobs to post but none went through, Telegram/config is broken.
-    if to_post and not results:
+    # If we had jobs to post but nothing went through, Telegram/config is broken.
+    if to_post and not posted:
         _alert("could not post any jobs to Telegram (check token/channel)",
                token, dry_run)
         return 1
 
-    # Mark sent jobs as seen and remember their message for later expiry.
-    for job, message_id in results:
+    for job in posted:
         store.add(job)
-        if message_id and message_id > 0:  # real id (not the dry-run sentinel)
-            store.record_post(job, message_id)
-
-    _expire_stale_posts(store, poster, dry_run)
 
     if not dry_run:
         store.save()
@@ -120,7 +123,11 @@ def run(dry_run: bool = False, bootstrap: bool = False) -> int:
 
 
 def _expire_stale_posts(store, poster, dry_run: bool) -> None:
-    """Mark posts as CLOSED once they pass their expiry date or age out."""
+    """Mark posts as CLOSED once they pass their expiry date or age out.
+
+    (Unused with digest posting, which bundles many jobs per message; the
+    14-day freshness filter keeps the feed current instead.)
+    """
     stale = store.expired_open_posts()[:MAX_CLOSURES_PER_RUN]
     if not stale:
         return

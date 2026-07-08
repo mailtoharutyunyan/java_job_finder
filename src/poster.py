@@ -79,12 +79,12 @@ def _stack_line(tags: list[str]) -> str:
     return " · ".join(dict.fromkeys(names))
 
 
-def _snippet(text: str) -> str:
+def _snippet(text: str, limit: int = SNIPPET_LEN) -> str:
     if not text:
         return ""
     t = text.strip()
-    if len(t) > SNIPPET_LEN:
-        t = t[:SNIPPET_LEN].rsplit(" ", 1)[0] + "…"
+    if len(t) > limit:
+        t = t[:limit].rsplit(" ", 1)[0] + "…"
     return html.escape(t)
 
 
@@ -147,6 +147,43 @@ def format_message(job: Job) -> str:
     return "\n".join(lines)[:MAX_MESSAGE_LEN]
 
 
+DIGEST_SIZE = 10
+
+
+def _digest_entry(n: int, job: Job) -> str:
+    """One compact job block for a digest message (no image, short blurb)."""
+    tags = hashtags(job)
+    badge = "⭐ " if is_profile_match(job) else ""
+    head = f"{badge}<b>{n}. {html.escape(job.title)}</b>"
+
+    meta = [f"🏢 {html.escape(job.company)}"] if job.company else []
+    meta.append(_location_line(job))
+    fit = []
+    if java_fit(job):
+        fit.append(f"☕{java_fit(job)}")
+    if go_fit(job):
+        fit.append(f"🐹{go_fit(job)}")
+    if fit:
+        meta.append(" ".join(fit))
+
+    parts = [head, " · ".join(meta)]
+    snippet = _snippet(job.description, 130)
+    if snippet:
+        parts.append(snippet)
+    tagline = " ".join(hashtags(job)[:4])
+    parts.append(f'🔗 <a href="{html.escape(job.url)}">Apply</a>'
+                 + (f"  {tagline}" if tagline else ""))
+    return "\n".join(parts)
+
+
+def format_digest(jobs: list[Job]) -> str:
+    """Build one digest message covering up to DIGEST_SIZE jobs."""
+    jobs = jobs[:DIGEST_SIZE]
+    header = f"📋 <b>Java &amp; Go jobs</b> · {len(jobs)} new"
+    entries = [_digest_entry(i + 1, j) for i, j in enumerate(jobs)]
+    return (header + "\n\n" + "\n\n".join(entries))[:MAX_MESSAGE_LEN]
+
+
 def send_text(token: str, chat_id: str, text: str) -> bool:
     """Send a plain text message (used for failure/health alerts)."""
     url = API.format(token=token, method="sendMessage")
@@ -175,6 +212,34 @@ class TelegramPoster:
         return json.dumps(
             {"inline_keyboard": [[{"text": "📋 View all jobs", "url": self.all_jobs_url}]]}
         )
+
+    def post_digest(self, jobs: list[Job]) -> int | None:
+        """Send one digest message (up to DIGEST_SIZE jobs, no image preview)."""
+        text = format_digest(jobs)
+        if self.dry_run:
+            print("-" * 50)
+            print(text)
+            return DRY_RUN_MSG_ID
+        payload = {
+            "chat_id": self.channel,
+            "text": text,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": True,  # no link-preview images
+        }
+        markup = self._reply_markup()
+        if markup:
+            payload["reply_markup"] = markup
+        url = API.format(token=self.token, method="sendMessage")
+        try:
+            resp = self._session.post(url, data=payload, timeout=20)
+            data = resp.json() if resp.status_code == 200 else {}
+            if data.get("ok"):
+                return data["result"]["message_id"]
+            log.warning("Telegram digest send failed: %s", resp.text[:200])
+            return None
+        except requests.RequestException as exc:
+            log.warning("Telegram digest send error: %s", exc)
+            return None
 
     def post(self, job: Job) -> int | None:
         """Send one job. Returns the Telegram message_id, or None on failure.

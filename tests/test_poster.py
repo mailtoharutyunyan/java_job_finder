@@ -1,6 +1,6 @@
 """Tests for message formatting (no network)."""
 from src.models import Job
-from src.poster import format_message
+from src.poster import DIGEST_SIZE, format_digest, format_message
 
 
 def test_message_contains_core_fields():
@@ -29,6 +29,27 @@ def test_no_badge_without_profile_skills():
             url="https://example.com/3", source="test",
             description="Oracle DB on-prem")
     assert "PROFILE MATCH" not in format_message(j)
+
+
+def test_digest_contains_multiple_jobs_numbered():
+    jobs = [Job(title=f"Java Developer {n}", company=f"Co{n}",
+                url=f"https://example.com/{n}", source="test", location="Remote",
+                description="Spring Boot backend role")
+            for n in range(1, 4)]
+    msg = format_digest(jobs)
+    assert "1. Java Developer 1" in msg
+    assert "3. Java Developer 3" in msg
+    assert "3 new" in msg
+    assert msg.count("Apply") == 3
+
+
+def test_digest_caps_at_size():
+    jobs = [Job(title=f"Java Dev {n}", company="Co", url=f"https://x/{n}",
+                source="test") for n in range(20)]
+    msg = format_digest(jobs)
+    # Only DIGEST_SIZE entries rendered.
+    assert f"{DIGEST_SIZE}. Java Dev" in msg
+    assert f"{DIGEST_SIZE + 1}. Java Dev" not in msg
 
 
 def test_html_is_sanitized():

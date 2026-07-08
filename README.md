@@ -4,15 +4,16 @@ Finds Java-family jobs every hour and posts each new one to a Telegram channel.
 No backend, no server, no cost — it runs as a GitHub Actions cron job and stores
 its state (`seen_jobs.json`) in the repo itself.
 
-Covers core Java / Spring, full-stack Java + Angular, and Java + AI/ML roles.
-Every post is tagged with detected skills (`#aws`, `#angular`, `#ai`, `#spring`, …)
-and carries a **📋 View all jobs** button linking to an auto-updated Telegraph page.
+Covers core Java / Spring / Go backend, full-stack Java + Angular, and Java/Go
++ AI/ML roles. Jobs are posted as **digest messages (10 jobs each, no image
+previews)** with a short blurb per job, detected-skill hashtags, and a
+**📋 View all jobs** button linking to an auto-updated Telegraph page.
 
 ## How it works
 
 ```
-every 15 min cron → fetch sources → filter Java-family → drop already-seen
-            → refresh Telegraph "all jobs" page → post up to 5 new jobs
+every 15 min cron → fetch sources → filter Java/Go → drop already-seen
+            → refresh Telegraph "all jobs" page → post digests (10 jobs/msg)
             → commit updated state back to the repo
 ```
 
@@ -23,14 +24,10 @@ and company ATS boards via
 Greenhouse/Lever (`src/fetchers/ats.py`). Add more RSS feeds in
 `src/fetchers/rssjobs.py` or companies in `ats.py`.
 
-Jobs are ranked by a Java-fit score (Java/Spring/microservices/Kafka/AWS/… are
-weighted) so the strongest matches post first and show a 🎯 fit meter. Mobile
-roles (Android/iOS) are excluded — they use Java/Kotlin but aren't backend Java.
-
-Posts are marked 🔴 CLOSED once they pass a source-provided expiry date or are
-30+ days old (the bot remembers each post's message id and edits it in place).
-Covers **Java and Go/Golang** backend roles. Only jobs **created within the
-last 14 days** are posted (older listings are usually filled).
+Jobs are ranked by fit (Java and Go each scored on Spring/microservices/Kafka/
+AWS/… weights) so the strongest matches lead each digest and show a ☕/🐹 fit
+number. Mobile roles (Android/iOS) are excluded — they use Java/Kotlin but
+aren't backend Java. Only jobs **created within the last 14 days** are posted.
 
 Only jobs workable from Armenia are posted: remote roles open to Armenia's
 region (worldwide / anywhere / Europe / EMEA / unspecified), roles offering
