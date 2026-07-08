@@ -18,8 +18,7 @@ def _salary(j: dict) -> str:
     return ""
 
 
-def fetch() -> list[Job]:
-    data = get_json(URL, params={"tags": "java"})
+def _parse(data) -> list[Job]:
     if not isinstance(data, list):
         return []
     result = []
@@ -40,3 +39,10 @@ def fetch() -> list[Job]:
             )
         )
     return result
+
+
+def fetch() -> list[Job]:
+    jobs = []
+    for tag in ("java", "golang"):
+        jobs.extend(_parse(get_json(URL, params={"tags": tag})))
+    return jobs

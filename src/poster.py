@@ -37,6 +37,7 @@ _SOURCE_DISPLAY = {
     "remoteyeah": "RemoteYeah", "tryremotely": "TryRemotely",
     "remotefirstjobs": "RemoteFirstJobs", "euremotejobs": "EU Remote Jobs",
     "jobspresso": "Jobspresso", "jobscollider": "JobsCollider",
+    "golangprojects": "Golangprojects",
     "linkedin": "LinkedIn", "indeed": "Indeed", "glassdoor": "Glassdoor",
 }
 

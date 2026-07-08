@@ -28,6 +28,7 @@ FEEDS: list[tuple[str, str]] = [
     ("jobspresso", "https://jobspresso.co/?feed=job_feed"),
     ("jobscollider", "https://jobscollider.com/remote-software-development-jobs.rss"),
     ("jobscollider", "https://jobscollider.com/remote-devops-jobs.rss"),
+    ("golangprojects", "https://www.golangprojects.com/rss.xml"),
     # General Remote First Jobs feed (all recent postings, filtered by us).
     ("remotefirstjobs", "https://remotefirstjobs.com/rss/jobs.rss"),
 ] + [("remotefirstjobs", _RFJ.format(s)) for s in _RFJ_SKILLS]
@@ -36,6 +37,9 @@ FEEDS: list[tuple[str, str]] = [
 def _title_company(item: dict) -> tuple[str, str]:
     raw = (item.get("title") or "").strip()
     company = (item.get("company") or "").strip()
+    if " @ " in raw:  # "Role @ Company" (e.g. Golangprojects)
+        position, _, tail = raw.rpartition(" @ ")
+        return position.strip(), company or tail.strip()
     if " at " in raw:
         position, _, tail = raw.rpartition(" at ")
         return position.strip(), company or tail.strip()
