@@ -179,6 +179,44 @@ def matches(job: Job) -> bool:
     return _java_match(job) or _go_match(job)
 
 
+# Title signals for roles that are NOT backend Java/Go engineering.
+_OFF_ROLE = re.compile(
+    r"\bsecurity\b|\bcyber|\bappsec\b|\bdevsecops\b"
+    r"|full[\s-]?stack|fullstack"
+    r"|front[\s-]?end"
+    r"|\bdevops\b|site reliability|\bsre\b|\bplatform engineer\b|infrastructure"
+    r"|\bqa\b|quality assurance|test engineer|\bsdet\b|\btester\b|automation test"
+    r"|data engineer|data scientist|machine learning|\bml\b|analytics|data analyst"
+    r"|architect|solutions? engineer|sales engineer|pre[\s-]?sales"
+    r"|\bmanager\b|\bdirector\b|head of|vice president|\bvp\b|\bchief\b"
+    r"|support|customer|content|curriculum|marketing|\bdesigner\b|recruit",
+    re.I,
+)
+
+# Seniority levels outside the target mid/senior band.
+_OFF_SENIORITY = re.compile(
+    r"\bprincipal\b|\bstaff\b|\blead\b|\bdistinguished\b|\bhead\b"
+    r"|\bjunior\b|\bjr\.?\b|\bintern(ship)?\b|entry[\s-]?level|\bgraduate\b"
+    r"|\btrainee\b|\bapprentice\b",
+    re.I,
+)
+
+
+def is_backend_dev_role(job: Job) -> bool:
+    """True only for mid/senior backend Java/Go engineering titles.
+
+    Excludes security, full-stack, front-end, DevOps/SRE, QA, data/ML,
+    architect/solutions/sales, management, and out-of-band seniority
+    (principal/staff/lead and junior/intern).
+    """
+    title = job.title
+    if _OFF_ROLE.search(title):
+        return False
+    if _OFF_SENIORITY.search(title):
+        return False
+    return True
+
+
 def is_staffing(job: Job) -> bool:
     """True if the employer is a staffing/freelance marketplace (generic posts)."""
     company = job.company.strip().lower()
@@ -333,6 +371,6 @@ def filter_java(jobs: list[Job]) -> list[Job]:
     """
     return [
         j for j in jobs
-        if matches(j) and not is_staffing(j) and workable_from_armenia(j)
-        and is_recent(j)
+        if matches(j) and is_backend_dev_role(j) and not is_staffing(j)
+        and workable_from_armenia(j) and is_recent(j)
     ]

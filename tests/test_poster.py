@@ -41,6 +41,16 @@ def test_digest_lists_jobs_as_links():
         assert f'<a href="https://example.com/{n}">Java Developer {n}</a>' in msg
 
 
+def test_digest_shows_hashtags():
+    j = Job(title="Senior Java Developer", company="Acme", url="https://x/1",
+            source="remotefirstjobs", location="Remote",
+            description="Spring Boot, AWS, Kafka")
+    msg = format_digest([j])
+    assert "#java" in msg
+    assert "#spring" in msg
+    assert "#remotefirstjobs" in msg
+
+
 def test_digest_groups_by_company():
     jobs = [
         Job(title="Java Dev A", company="Acme", url="https://x/a", source="test"),

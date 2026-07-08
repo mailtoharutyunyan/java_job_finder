@@ -4,10 +4,13 @@ Finds Java-family jobs every hour and posts each new one to a Telegram channel.
 No backend, no server, no cost — it runs as a GitHub Actions cron job and stores
 its state (`seen_jobs.json`) in the repo itself.
 
-Covers core Java / Spring / Go backend, full-stack Java + Angular, and Java/Go
-+ AI/ML roles. Jobs are posted as **digest messages (10 jobs each, no image
-previews)** with a short blurb per job, detected-skill hashtags, and a
-**📋 View all jobs** button linking to an auto-updated Telegraph page.
+Covers **mid/senior backend Java & Go/Golang** engineering roles (Java, Spring
+Boot, JVM, Go). Excludes security, full-stack, front-end, DevOps/SRE, QA,
+data/ML, architect/solutions/sales, management, and out-of-band seniority
+(principal/staff/lead, junior/intern). Jobs are posted as **digest messages
+(10 jobs each, no image previews)**, grouped by company, each a clickable
+bullet with normalized location, fit score, and skill hashtags, plus a
+**📋 View all jobs** button.
 
 ## How it works
 

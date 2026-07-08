@@ -7,6 +7,7 @@ from src.filter import (
     is_remote_or_relocation,
     is_staffing,
     matches,
+    is_backend_dev_role,
     requires_work_permit,
     workable_from_armenia,
 )
@@ -181,6 +182,32 @@ def test_plain_onsite_rejected():
 def staff_job(company):
     return Job(title="Senior Java Developer", company=company,
                url=f"https://x/{company}", source="test", location="Remote")
+
+
+def role(title):
+    return Job(title=title, company="Acme", url=f"https://x/{title}", source="t")
+
+
+def test_backend_dev_roles_kept():
+    for t in ["Senior Java Developer", "Backend Engineer", "Java Software Engineer",
+              "Golang Developer", "Senior Software Engineer (Java)",
+              "Mid-level Java Engineer"]:
+        assert is_backend_dev_role(role(t)), t
+
+
+def test_off_roles_excluded():
+    for t in ["Security Engineer", "Full Stack Developer", "Frontend Engineer",
+              "DevOps Engineer", "Site Reliability Engineer", "QA Engineer",
+              "Data Engineer", "Solutions Architect", "Sales Engineer",
+              "Engineering Manager", "Software Architect"]:
+        assert not is_backend_dev_role(role(t)), t
+
+
+def test_off_seniority_excluded():
+    for t in ["Principal Software Engineer", "Staff Backend Engineer",
+              "Lead Java Developer", "Junior Java Developer",
+              "Java Developer Intern", "Graduate Software Engineer"]:
+        assert not is_backend_dev_role(role(t)), t
 
 
 def test_staffing_companies_detected():

@@ -177,9 +177,16 @@ def _bullet(job: Job) -> str:
         fit = f" · ☕{java_fit(job)}"
     elif go_fit(job):
         fit = f" · 🐹{go_fit(job)}"
-    reloc = " · ✈️relocation" if "#relocation" in hashtags(job) else ""
+    tags = hashtags(job)
+    reloc = " · ✈️relocation" if "#relocation" in tags else ""
+    src = source_hashtag(job)
+    if src and src not in tags:
+        tags.append(src)
+    # Drop #onsite (all jobs are remote-workable) to keep the tag line tight.
+    shown = [t for t in tags if t != "#onsite"][:7]
+    tagline = "\n  " + " ".join(shown) if shown else ""
     return (f'• {star}<a href="{html.escape(job.url)}">{html.escape(job.title)}</a>'
-            f" — {_display_location(job)}{fit}{reloc}")
+            f" — {_display_location(job)}{fit}{reloc}{tagline}")
 
 
 def format_digest(jobs: list[Job]) -> str:
