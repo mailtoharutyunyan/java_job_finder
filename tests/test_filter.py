@@ -1,5 +1,5 @@
 """Tests for the Java-vs-JavaScript filter."""
-from src.filter import matches
+from src.filter import filter_java, is_remote_or_relocation, matches
 from src.models import Job
 
 
@@ -49,6 +49,23 @@ def test_unrelated_job_rejected():
     assert not matches(job("Python Data Scientist", description="pandas numpy"))
 
 
+def test_python_title_with_polluted_java_tag_rejected():
+    # RemoteOK sometimes tags a Python role with "java"; the title must win.
+    assert not matches(job("Python Developer Brazil", tags=["java", "python"]))
+
+
+def test_go_developer_rejected():
+    assert not matches(job("Golang Developer", tags=["java", "golang"]))
+
+
+def test_frontend_only_rejected():
+    assert not matches(job("Front End Full Stack Developer", tags=["java"]))
+
+
+def test_dotnet_rejected():
+    assert not matches(job("Senior .NET Engineer", description="C# and Java interop"))
+
+
 def test_javascript_substring_does_not_trigger_java():
     # "javascript" must not be read as a Java signal.
     assert not matches(job("JavaScript Developer", description="pure javascript role"))
@@ -73,3 +90,44 @@ def test_engineer_title_with_java_in_description_passes():
 
 def test_java_in_tags_passes_generic_title():
     assert matches(job("Software Consultant", tags=["java", "spring"]))
+
+
+# --- remote / worldwide / relocation location filter ---
+
+def loc_job(title="Java Developer", location="", tags=None, description=""):
+    return Job(title=title, company="Acme", url=f"https://x/{title}{location}",
+               source="test", location=location, tags=tags or [], description=description)
+
+
+def test_remote_location_passes():
+    assert is_remote_or_relocation(loc_job(location="Remote, Worldwide"))
+
+
+def test_anywhere_tag_passes():
+    assert is_remote_or_relocation(loc_job(tags=["anywhere"]))
+
+
+def test_relocation_in_description_passes():
+    assert is_remote_or_relocation(
+        loc_job(location="Berlin", description="On-site with full relocation package"))
+
+
+def test_visa_sponsorship_passes():
+    assert is_remote_or_relocation(
+        loc_job(location="Amsterdam", description="We offer visa sponsorship"))
+
+
+def test_plain_onsite_rejected():
+    assert not is_remote_or_relocation(
+        loc_job(location="Munich", description="On-site role in our Munich office"))
+
+
+def test_filter_java_requires_java_and_location():
+    jobs = [
+        loc_job("Senior Java Developer", location="Remote"),          # java + remote → keep
+        loc_job("Senior Java Developer", location="Munich office"),   # java, on-site → drop
+        loc_job("Python Developer", location="Remote"),               # remote, not java → drop
+    ]
+    kept = filter_java(jobs)
+    assert len(kept) == 1
+    assert kept[0].location == "Remote"

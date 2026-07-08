@@ -23,7 +23,10 @@ _JAVA_SIGNALS = [
     r"\bmicronaut\b",
 ]
 
-# JavaScript-family signals that, on their own, indicate a non-Java role.
+# Signals that, in a TITLE with no Java signal, indicate a non-Java role:
+# JavaScript/frontend stacks and other competing primary languages. Used to
+# reject jobs that only carry "java" via polluted tags (e.g. a RemoteOK
+# "Python Developer" also tagged java).
 _JS_SIGNALS = [
     r"\bjavascript\b",
     r"\bjs\b",
@@ -34,6 +37,23 @@ _JS_SIGNALS = [
     r"\bvue\b",
     r"\btypescript\b",
     r"\bnext\.?js\b",
+    r"\bangular\b",
+    r"\bfront[\s-]?end\b",
+    # competing primary languages
+    r"\bpython\b",
+    r"\bruby\b",
+    r"\brails\b",
+    r"\bphp\b",
+    r"\blaravel\b",
+    r"\bgolang\b",
+    r"\bgo developer\b",
+    r"\brust\b",
+    r"\bc#",
+    r"\.net\b",
+    r"\bdotnet\b",
+    r"\bscala\b",
+    r"\belixir\b",
+    r"\bdjango\b",
 ]
 
 # Titles that indicate an actual software-engineering role. Used to keep
@@ -53,17 +73,41 @@ _DEV_TITLE_SIGNALS = [
     r"\bcoder\b",
 ]
 
+# Location acceptability: remote/worldwide roles, plus roles that offer
+# relocation or visa sponsorship.
+_REMOTE_SIGNALS = [
+    r"\bremote\b",
+    r"\bworld[\s-]?wide\b",
+    r"\banywhere\b",
+    r"\bwork from home\b",
+    r"\bwfh\b",
+    r"\bdistributed\b",
+    r"\bfully remote\b",
+    r"\bremote[\s-]?first\b",
+    r"\bhome[\s-]?office\b",
+]
+_RELOCATION_SIGNALS = [
+    r"\brelocation\b",
+    r"\brelocate\b",
+    r"\brelo\b",
+    r"\bvisa\b",
+    r"\bsponsorship\b",
+    r"\bwork permit\b",
+]
+
 _JAVA_RE = [re.compile(p) for p in _JAVA_SIGNALS]
 _JS_RE = [re.compile(p) for p in _JS_SIGNALS]
 _DEV_TITLE_RE = [re.compile(p) for p in _DEV_TITLE_SIGNALS]
+_REMOTE_RE = [re.compile(p) for p in _REMOTE_SIGNALS]
+_RELOCATION_RE = [re.compile(p) for p in _RELOCATION_SIGNALS]
 
 
 def _has_java(text: str) -> bool:
     return any(r.search(text) for r in _JAVA_RE)
 
 
-def _title_is_javascript(title: str) -> bool:
-    """True when the TITLE is a JavaScript role with no Java signal of its own."""
+def _title_is_non_java(title: str) -> bool:
+    """True when the TITLE names a competing stack and has no Java signal."""
     t = title.lower()
     if _has_java(t):
         return False
@@ -83,8 +127,8 @@ def matches(job: Job) -> bool:
     engineering-role title — otherwise product/data/design listings that dump a
     full tech stack into their description would slip through.
     """
-    # Reject JavaScript-titled roles that lack an independent Java signal.
-    if _title_is_javascript(job.title):
+    # Reject titles naming a competing stack (JS/Python/…) with no Java signal.
+    if _title_is_non_java(job.title):
         return False
 
     # A Java signal in the title is trusted outright.
@@ -100,5 +144,21 @@ def matches(job: Job) -> bool:
     return False
 
 
+def is_remote_or_relocation(job: Job) -> bool:
+    """True if the job is remote/worldwide or offers relocation/visa support.
+
+    Location and tags are the primary signal; the description is included so
+    roles that state "remote" or "visa sponsorship" only in the body still pass.
+    """
+    where = " ".join([job.location, " ".join(job.tags)]).lower()
+    if any(r.search(where) for r in _REMOTE_RE):
+        return True
+    body = job.haystack
+    if any(r.search(body) for r in _REMOTE_RE):
+        return True
+    return any(r.search(body) for r in _RELOCATION_RE)
+
+
 def filter_java(jobs: list[Job]) -> list[Job]:
-    return [j for j in jobs if matches(j)]
+    """Java-family jobs that are also remote/worldwide or offer relocation."""
+    return [j for j in jobs if matches(j) and is_remote_or_relocation(j)]
