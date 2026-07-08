@@ -109,41 +109,43 @@ def publish(jobs: list[Job], token: str | None, dry_run: bool = False) -> str | 
     path = page.get("path")
     content_json = json.dumps(content)
 
-    try:
-        if path:
-            resp = requests.post(
-                API.format(method="editPage"),
-                data={
-                    "access_token": token,
-                    "path": path,
-                    "title": TITLE,
-                    "author_name": AUTHOR,
-                    "content": content_json,
-                    "return_content": "false",
-                },
-                timeout=20,
-            ).json()
-        else:
-            resp = requests.post(
-                API.format(method="createPage"),
-                data={
-                    "access_token": token,
-                    "title": TITLE,
-                    "author_name": AUTHOR,
-                    "content": content_json,
-                    "return_content": "false",
-                },
-                timeout=20,
-            ).json()
-    except requests.RequestException as exc:
-        log.warning("Telegraph publish failed: %s", exc)
-        return page.get("url")
+    # Try to update the existing page; if that fails (e.g. the stored page
+    # belongs to a different Telegraph account → PAGE_ACCESS_DENIED), fall back
+    # to creating a fresh page under the current token so the button always
+    # points at a live, updatable page.
+    resp = None
+    if path:
+        resp = _call("editPage", token, content_json, path=path)
+        if resp is None or not resp.get("ok"):
+            log.warning("Telegraph editPage failed (%s); creating a new page",
+                        resp.get("error") if resp else "network")
+            resp = None
+    if resp is None:
+        resp = _call("createPage", token, content_json)
 
-    if not resp.get("ok"):
-        log.warning("Telegraph API error: %s", resp)
+    if resp is None or not resp.get("ok"):
+        log.warning("Telegraph publish failed: %s", resp)
         return page.get("url")
 
     result = resp["result"]
     data = {"path": result["path"], "url": result["url"]}
     _save_page(data)
     return data["url"]
+
+
+def _call(method: str, token: str, content_json: str, path: str | None = None):
+    """POST to a Telegraph write method; return the parsed JSON or None."""
+    payload = {
+        "access_token": token,
+        "title": TITLE,
+        "author_name": AUTHOR,
+        "content": content_json,
+        "return_content": "false",
+    }
+    if path:
+        payload["path"] = path
+    try:
+        return requests.post(API.format(method=method), data=payload, timeout=20).json()
+    except requests.RequestException as exc:
+        log.warning("Telegraph %s failed: %s", method, exc)
+        return None
