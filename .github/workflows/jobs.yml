@@ -1,0 +1,55 @@
+name: Post Java jobs
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # hourly (UTC); GitHub may start a few minutes late
+  workflow_dispatch:       # manual runs, with an optional bootstrap toggle
+    inputs:
+      bootstrap:
+        description: "Mark current jobs as seen without posting"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write          # needed to commit updated state back to the repo
+
+concurrency:
+  group: post-java-jobs
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+          TELEGRAPH_ACCESS_TOKEN: ${{ secrets.TELEGRAPH_ACCESS_TOKEN }}
+        run: |
+          if [ "${{ inputs.bootstrap }}" = "true" ]; then
+            python -m src.main --bootstrap
+          else
+            python -m src.main
+          fi
+
+      - name: Commit updated state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add seen_jobs.json telegraph_page.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update job state [skip ci]"
+            git push
+          else
+            echo "No state changes to commit."
+          fi
