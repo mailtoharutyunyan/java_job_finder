@@ -50,6 +50,7 @@ class Job:
     tags: list[str] = field(default_factory=list)
     description: str = ""
     published_at: str = ""
+    expires_at: str = ""  # ISO date when the posting closes, if the source says
 
     def __post_init__(self) -> None:
         self.title = _clean(self.title)

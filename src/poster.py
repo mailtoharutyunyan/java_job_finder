@@ -17,6 +17,7 @@ log = logging.getLogger(__name__)
 API = "https://api.telegram.org/bot{token}/{method}"
 SEND_DELAY_SECONDS = 3
 MAX_MESSAGE_LEN = 4000
+DRY_RUN_MSG_ID = -1  # sentinel returned by post() in dry-run (no real message)
 SNIPPET_LEN = 240
 
 # Hashtag → display name for the "stack" line (skills only, not meta tags).
@@ -175,15 +176,18 @@ class TelegramPoster:
             {"inline_keyboard": [[{"text": "📋 View all jobs", "url": self.all_jobs_url}]]}
         )
 
-    def post(self, job: Job) -> bool:
-        """Send one job. Returns True on success (or in dry-run)."""
+    def post(self, job: Job) -> int | None:
+        """Send one job. Returns the Telegram message_id, or None on failure.
+
+        In dry-run, prints the message and returns the sentinel DRY_RUN_MSG_ID.
+        """
         text = format_message(job)
         if self.dry_run:
             print("-" * 50)
             print(text)
             if self.all_jobs_url:
                 print(f"[button → {self.all_jobs_url}]")
-            return True
+            return DRY_RUN_MSG_ID
 
         payload = {
             "chat_id": self.channel,
@@ -198,20 +202,48 @@ class TelegramPoster:
         url = API.format(token=self.token, method="sendMessage")
         try:
             resp = self._session.post(url, data=payload, timeout=20)
-            if resp.status_code == 200 and resp.json().get("ok"):
-                return True
+            data = resp.json() if resp.status_code == 200 else {}
+            if data.get("ok"):
+                return data["result"]["message_id"]
             log.warning("Telegram send failed for %s: %s", job.title, resp.text[:200])
-            return False
+            return None
         except requests.RequestException as exc:
             log.warning("Telegram send error for %s: %s", job.title, exc)
-            return False
+            return None
 
-    def post_batch(self, jobs: list[Job]) -> int:
-        """Post jobs sequentially with a delay. Returns count sent."""
-        sent = 0
+    def post_batch(self, jobs: list[Job]) -> list[tuple[Job, int]]:
+        """Post jobs sequentially with a delay. Returns (job, message_id) sent."""
+        results = []
         for i, job in enumerate(jobs):
-            if self.post(job):
-                sent += 1
+            mid = self.post(job)
+            if mid is not None:
+                results.append((job, mid))
             if not self.dry_run and i < len(jobs) - 1:
                 time.sleep(SEND_DELAY_SECONDS)
-        return sent
+        return results
+
+    def close_message(self, message_id: int, title: str, company: str, url: str) -> bool:
+        """Edit a previously-posted job to mark it closed/expired."""
+        text = (
+            "🔴 <b>CLOSED · posting expired</b>\n\n"
+            f"<s>☕ {html.escape(title)}</s>\n"
+        )
+        if company:
+            text += f"🏢 {html.escape(company)}\n"
+        text += f'🔗 <a href="{html.escape(url)}">Original posting</a>'
+        if self.dry_run:
+            print(f"[would mark CLOSED: msg {message_id} — {title}]")
+            return True
+        api = API.format(token=self.token, method="editMessageText")
+        try:
+            resp = self._session.post(api, data={
+                "chat_id": self.channel,
+                "message_id": message_id,
+                "text": text,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True,
+            }, timeout=20)
+            return resp.status_code == 200 and resp.json().get("ok", False)
+        except requests.RequestException as exc:
+            log.warning("Telegram close failed for msg %s: %s", message_id, exc)
+            return False

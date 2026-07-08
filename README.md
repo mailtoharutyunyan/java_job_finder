@@ -25,6 +25,9 @@ Greenhouse/Lever (`src/fetchers/ats.py`). Add more RSS feeds in
 Jobs are ranked by a Java-fit score (Java/Spring/microservices/Kafka/AWS/… are
 weighted) so the strongest matches post first and show a 🎯 fit meter. Mobile
 roles (Android/iOS) are excluded — they use Java/Kotlin but aren't backend Java.
+
+Posts are marked 🔴 CLOSED once they pass a source-provided expiry date or are
+30+ days old (the bot remembers each post's message id and edits it in place).
 Only jobs workable from Armenia are posted: remote roles open to Armenia's
 region (worldwide / anywhere / Europe / EMEA / unspecified), roles offering
 relocation or visa sponsorship, and roles located in Armenia. On-site-abroad

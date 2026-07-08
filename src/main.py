@@ -11,6 +11,7 @@ import argparse
 import logging
 import os
 import sys
+import time
 
 from . import fetchers
 from .filter import filter_java
@@ -23,6 +24,8 @@ from . import telegraph_page
 # current list is always available via the "View all jobs" page. Overridable
 # via env if you want to clear a backlog faster or slower.
 MAX_POSTS_PER_RUN = int(os.environ.get("MAX_POSTS_PER_RUN", "12"))
+MAX_CLOSURES_PER_RUN = 20      # cap CLOSED edits per run to respect rate limits
+CLOSE_DELAY_SECONDS = 2
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("java-jobs")
@@ -94,22 +97,41 @@ def run(dry_run: bool = False, bootstrap: bool = False) -> int:
         log.info("Posting %d now; %d roll to next run.", len(to_post), overflow)
 
     poster = TelegramPoster(token, channel, all_jobs_url=page_url, dry_run=dry_run)
-    sent = poster.post_batch(to_post)
-    log.info("Posted %d/%d jobs", sent, len(to_post))
+    results = poster.post_batch(to_post)
+    log.info("Posted %d/%d jobs", len(results), len(to_post))
 
     # If we had jobs to post but none went through, Telegram/config is broken.
-    if to_post and sent == 0:
+    if to_post and not results:
         _alert("could not post any jobs to Telegram (check token/channel)",
                token, dry_run)
         return 1
 
-    # Only mark jobs we actually sent as seen, so failures retry next run.
-    for job in to_post[:sent]:
+    # Mark sent jobs as seen and remember their message for later expiry.
+    for job, message_id in results:
         store.add(job)
+        if message_id and message_id > 0:  # real id (not the dry-run sentinel)
+            store.record_post(job, message_id)
+
+    _expire_stale_posts(store, poster, dry_run)
 
     if not dry_run:
         store.save()
     return 0
+
+
+def _expire_stale_posts(store, poster, dry_run: bool) -> None:
+    """Mark posts as CLOSED once they pass their expiry date or age out."""
+    stale = store.expired_open_posts()[:MAX_CLOSURES_PER_RUN]
+    if not stale:
+        return
+    log.info("Marking %d stale post(s) as closed", len(stale))
+    for i, (key, p) in enumerate(stale):
+        ok = poster.close_message(p["m"], p.get("title", ""), p.get("company", ""),
+                                  p.get("url", ""))
+        if ok:
+            store.mark_closed(key)
+        if not dry_run and i < len(stale) - 1:
+            time.sleep(CLOSE_DELAY_SECONDS)
 
 
 def main() -> int:

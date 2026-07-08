@@ -57,6 +57,7 @@ def _to_jobs(items: list) -> list[Job]:
                 tags=j.get("tags", []) or [],
                 description=" ".join(p for p in desc_parts if p),
                 published_at=j.get("published_at", ""),
+                expires_at=j.get("expires_at", "") or "",
             )
         )
     return jobs

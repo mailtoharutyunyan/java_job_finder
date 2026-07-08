@@ -54,6 +54,48 @@ def test_save_and_reload(tmp_path):
     assert not reloaded.has(job(2))
 
 
+def test_record_post_and_fresh_not_expired(tmp_path):
+    store = SeenStore(path=tmp_path / "seen.json")
+    store.record_post(job(1), message_id=555)
+    assert store.expired_open_posts() == []
+
+
+def test_post_expires_by_age(tmp_path):
+    store = SeenStore(path=tmp_path / "seen.json")
+    store.record_post(job(1), message_id=555)
+    # Backdate the post beyond the expiry window.
+    old = (datetime.now(timezone.utc) - timedelta(days=40)).isoformat()
+    store._posts[job(1).key]["t"] = old
+    expired = store.expired_open_posts()
+    assert len(expired) == 1 and expired[0][1]["m"] == 555
+
+
+def test_post_expires_by_source_date(tmp_path):
+    store = SeenStore(path=tmp_path / "seen.json")
+    j = job(2)
+    j.expires_at = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+    store.record_post(j, message_id=42)
+    assert len(store.expired_open_posts()) == 1
+
+
+def test_mark_closed_removes_from_expired(tmp_path):
+    store = SeenStore(path=tmp_path / "seen.json")
+    store.record_post(job(1), message_id=555)
+    store._posts[job(1).key]["t"] = (
+        datetime.now(timezone.utc) - timedelta(days=40)).isoformat()
+    store.mark_closed(job(1).key)
+    assert store.expired_open_posts() == []
+
+
+def test_posts_survive_save_reload(tmp_path):
+    path = tmp_path / "seen.json"
+    store = SeenStore(path=path)
+    store.record_post(job(1), message_id=777)
+    store.save()
+    reloaded = SeenStore(path=path)
+    assert reloaded._posts[job(1).key]["m"] == 777
+
+
 def test_prune_removes_old_entries_and_migrates_flat_format(tmp_path):
     path = tmp_path / "seen.json"
     old = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
