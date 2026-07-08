@@ -27,7 +27,7 @@ Greenhouse/Lever (`src/fetchers/ats.py`). Add more RSS feeds in
 Jobs are ranked by fit (Java and Go each scored on Spring/microservices/Kafka/
 AWS/… weights) so the strongest matches lead each digest and show a ☕/🐹 fit
 number. Mobile roles (Android/iOS) are excluded — they use Java/Kotlin but
-aren't backend Java. Only jobs **created within the last 14 days** are posted.
+aren't backend Java. Only jobs **created within the last 21 days** are posted.
 
 Only jobs workable from Armenia are posted: remote roles open to Armenia's
 region (worldwide / anywhere / Europe / EMEA / unspecified), roles offering

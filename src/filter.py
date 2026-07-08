@@ -12,7 +12,7 @@ from email.utils import parsedate_to_datetime
 
 from .models import Job
 
-MAX_AGE_DAYS = 14  # only post jobs created within this many days
+MAX_AGE_DAYS = 21  # only post jobs created within this many days
 
 # Genuine Java signals. Word boundaries keep "java" from matching "javascript".
 _JAVA_SIGNALS = [
