@@ -35,6 +35,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
           TELEGRAPH_ACCESS_TOKEN: ${{ secrets.TELEGRAPH_ACCESS_TOKEN }}
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
         run: |
           if [ "${{ inputs.bootstrap }}" = "true" ]; then
             python -m src.main --bootstrap

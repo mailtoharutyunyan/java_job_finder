@@ -16,7 +16,10 @@ hourly cron → fetch sources → filter Java-family → drop already-seen
             → commit updated state back to the repo
 ```
 
-Sources (all free, no API keys): Remotive, Arbeitnow, Jobicy, RemoteOK.
+Sources (free, no API keys): Remotive, Arbeitnow, Jobicy, RemoteOK.
+Optional: JSearch (RapidAPI) adds LinkedIn / Indeed / Glassdoor listings — set
+the `RAPIDAPI_KEY` secret to enable it. It self-limits to every 4 hours (~180
+requests/month) to stay under the free tier; the other sources still run hourly.
 
 ## Setup (one-time, ~5 min)
 
@@ -28,6 +31,8 @@ Sources (all free, no API keys): Remotive, Arbeitnow, Jobicy, RemoteOK.
    - `TELEGRAM_CHANNEL_ID`
    - `TELEGRAPH_ACCESS_TOKEN` — leave unset on the first run; the log prints a new
      token, which you then save as this secret so the "all jobs" page stays stable.
+   - `RAPIDAPI_KEY` *(optional)* — a free [JSearch](https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch)
+     key to include LinkedIn/Indeed jobs. Omit to run on the four free sources only.
 5. **First run** — Actions → *Post Java jobs* → *Run workflow*, tick **bootstrap**.
    This marks the current backlog as seen so the channel starts clean.
 6. Done — the hourly schedule takes over automatically.

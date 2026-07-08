@@ -14,8 +14,13 @@ _session.headers.update(_HEADERS)
 TIMEOUT = 20
 
 
-def get_json(url: str, params: dict | None = None) -> dict | list:
-    """GET a URL and return parsed JSON. Raises on HTTP or decode errors."""
-    resp = _session.get(url, params=params, timeout=TIMEOUT)
+def get_json(url: str, params: dict | None = None,
+             headers: dict | None = None) -> dict | list:
+    """GET a URL and return parsed JSON. Raises on HTTP or decode errors.
+
+    Per-request headers are merged over the session defaults (used for APIs
+    like RapidAPI that require auth headers).
+    """
+    resp = _session.get(url, params=params, headers=headers, timeout=TIMEOUT)
     resp.raise_for_status()
     return resp.json()
