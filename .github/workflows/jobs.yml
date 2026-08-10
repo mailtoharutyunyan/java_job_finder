@@ -2,7 +2,7 @@ name: Post Java jobs
 
 on:
   schedule:
-    - cron: "*/15 * * * *"   # every 15 min (UTC); GitHub may start a few minutes late
+    - cron: "0 3 * * 0"   # every 15 min (UTC); GitHub may start a few minutes late
   workflow_dispatch:       # manual "Run workflow" always does a normal posting run
     inputs:
       force_jsearch:
